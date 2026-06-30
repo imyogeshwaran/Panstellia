@@ -102,8 +102,49 @@ export const validateEmailJSConfig = () => {
   return true;
 };
 
+export const sendFeedbackNotification = async (feedbackData) => {
+  try {
+    const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'support@panstellia.com';
+    const templateId =
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID_FEEDBACK ||
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID_ORDER ||
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID_CUSTOMER;
+
+    if (!templateId) {
+      throw new Error('Feedback template ID not configured');
+    }
+
+    const variables = {
+      to_email: supportEmail,
+      customer_name: feedbackData.customerName || 'Customer',
+      customer_phone: feedbackData.phoneNumber || 'N/A',
+      city: feedbackData.city || 'N/A',
+      feedback_message: feedbackData.feedback || 'N/A',
+      subject: 'New customer feedback submitted',
+      email_html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <h3>New customer feedback received</h3>
+          <p><strong>Name:</strong> ${feedbackData.customerName || 'N/A'}</p>
+          <p><strong>Phone:</strong> ${feedbackData.phoneNumber || 'N/A'}</p>
+          <p><strong>City:</strong> ${feedbackData.city || 'N/A'}</p>
+          <p><strong>Feedback:</strong></p>
+          <p>${(feedbackData.feedback || 'N/A').replace(/\n/g, '<br />')}</p>
+        </div>
+      `,
+    };
+
+    const response = await sendEmail(templateId, variables);
+    console.log('✅ Feedback notification email sent successfully:', response);
+    return response;
+  } catch (error) {
+    console.error('❌ Failed to send feedback notification email:', error);
+    throw error;
+  }
+};
+
 export default {
   initializeEmailJS,
   sendEmail,
   validateEmailJSConfig,
+  sendFeedbackNotification,
 };

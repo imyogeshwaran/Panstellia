@@ -4,6 +4,7 @@ import { Send, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { db } from '../../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { sendFeedbackNotification } from '../../services/emailjs';
 
 const CustomerFeedback = () => {
   const [formData, setFormData] = useState({
@@ -54,6 +55,17 @@ const CustomerFeedback = () => {
         createdAt: serverTimestamp(),
         status: 'new' // Admin can mark as read/processed
       });
+
+      try {
+        await sendFeedbackNotification({
+          customerName: formData.customerName.trim(),
+          phoneNumber: formData.phoneNumber.trim(),
+          city: formData.city.trim(),
+          feedback: formData.feedback.trim(),
+        });
+      } catch (emailError) {
+        console.warn('Feedback saved but support email notification failed:', emailError);
+      }
 
       setSubmitted(true);
       toast.success('Thank you! Your feedback has been received.', {

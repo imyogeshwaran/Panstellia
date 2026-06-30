@@ -53,11 +53,11 @@ const HomePage = () => {
   );
 
   const RAW_COLLECTION_IMAGES = [
-    'https://res.cloudinary.com/omoikkzf/image/upload/v1782467387/file-0000000067f871faa8219b12c171e65f_gqejh1.png',
-    'https://i.ibb.co/v6D0LrQG/file-0000000035cc71fa963321ed9c5ee32f.png',
-    'https://i.ibb.co/HfHynYrb/file-00000000501871fabeb3ad48399d23bd.png',
-    'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png',
-    'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817101/ChatGPT_Image_Jun_30_2026_03_33_25_PM_rmxgvr.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817368/ChatGPT_Image_Jun_30_2026_03_35_17_PM_hylxo4.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817401/ChatGPT_Image_Jun_30_2026_03_34_47_PM_ugzgsu.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817380/ChatGPT_Image_Jun_30_2026_03_34_11_PM_hpvfmm.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817390/ChatGPT_Image_Jun_30_2026_03_33_55_PM_smfn9p.png',
   ];
   const collectionImages = RAW_COLLECTION_IMAGES.map((url) =>
     getOptimizedImageUrl(url, { width: 800, quality: 80 })
@@ -537,7 +537,7 @@ const HomePage = () => {
   };
 
   const renderBannerSection = (sec) => {
-    const images = sec.images || collectionImages;
+    const images = sec.id === 'trending_banner' ? collectionImages : sec.images || collectionImages;
     return (
       <section className="py-16 bg-gradient-to-r from-gold-500 to-gold-600 relative overflow-hidden shadow-inner">
         <div className="absolute inset-0 bg-pattern opacity-20" />
