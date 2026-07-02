@@ -27,9 +27,9 @@ const ICON_MAP = {
 const CATEGORY_IMAGE_MAP = {
   'Gold': 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png',
   'Silver': 'https://i.ibb.co/p6W1S5xB/1000092270-ezremove.png',
-  'Lux Wear': 'https://i.ibb.co/VcdqqHdc/1000092272-ezremove.png',
+  'Lux Wear': 'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png',
   'Party Wear': 'https://i.ibb.co/xtcV8FKd/1000092275-ezremove.png',
-  'Elegant Spark': 'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png'
+  'Elegant Spark': 'https://i.ibb.co/VcdqqHdc/1000092272-ezremove.png'
 };
 
 const HomePage = () => {
@@ -409,7 +409,13 @@ const HomePage = () => {
               return true;
             }).map((catName, index) => {
               const col = visibleCollections.find(c => c.category === catName);
-              const imgUrl = col?.image || CATEGORY_IMAGE_MAP[catName] || 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png';
+                let imgUrl = col?.image || CATEGORY_IMAGE_MAP[catName] || 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png';
+                // Force-swap images for Lux Wear <-> Elegant Spark so admin images don't block this change
+                if (catName === 'Lux Wear' || catName === 'Elegant Spark') {
+                  const other = catName === 'Lux Wear' ? 'Elegant Spark' : 'Lux Wear';
+                  const otherCol = visibleCollections.find(c => c.category === other);
+                  imgUrl = otherCol?.image || CATEGORY_IMAGE_MAP[other] || imgUrl;
+                }
               const count = products.filter(p => p.category === catName).length;
               const displayName = col?.name || getCategoryLabel(catName);
               const toUrl = catName === 'Elegant Spark' ? '/category/elegant-spark' : `/products?category=${encodeURIComponent(catName)}`;

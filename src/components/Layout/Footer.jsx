@@ -85,6 +85,8 @@ const defaultFaqs = [
 
 const Footer = () => {
   const { visibleCollections, quickLinks = [] } = useProducts();
+  const SITE_ADDRESS = '9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801';
+  const MAP_DIRECTIONS_LINK = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(SITE_ADDRESS)}`;
   const [openSection, setOpenSection] = useState({
     quickLinks: false,
     customerService: false,
@@ -97,7 +99,7 @@ const Footer = () => {
     contact: {
       email: "support@panstellia.com",
       phone: "+91 78100 32622, +91 90802 32622",
-      address: "9A, Indra Nagar, Neyveli, Cuddalore, TamilNadu, India",
+      address: "9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801",
       instagram: "https://www.instagram.com/panstellia",
       facebook: "https://www.facebook.com/people/Panstellia-PS/61581753914404/"
     },
@@ -110,7 +112,14 @@ const Footer = () => {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'system_settings', 'cms'), (snapshot) => {
       if (snapshot.exists()) {
-        setCms(snapshot.data());
+        const data = snapshot.data();
+        // Override address and map link to ensure consistent sitewide address
+        const contact = {
+          ...(data.contact || {}),
+          address: SITE_ADDRESS,
+          mapLink: (data.contact && data.contact.mapLink) || MAP_DIRECTIONS_LINK
+        };
+        setCms({ ...data, contact });
       }
     }, (err) => {
       console.error("Error reading CMS settings in footer:", err);
@@ -145,7 +154,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="flex flex-col justify-start">
-            <img src="https://res.cloudinary.com/omoikkzf/image/upload/v1782889678/ChatGPT_Image_Jun_29_2026_09_35_54_AM_m0pjej.png" alt="Panstellia" className="h-12 w-auto mb-4 self-start object-contain" />
+            <img src="https://res.cloudinary.com/omoikkzf/image/upload/v1782807091/582758AE-6631-4766-BFCA-34594061A683_fycfgc.png" alt="Panstellia" className="h-12 w-auto mb-4 self-start object-contain" />
             <p className="text-luxury-300 text-sm leading-relaxed">
               {cms.about?.story || "Discover exquisite necklace jewelry for every occasion. From Elite Series elegance to piercing glamour, we bring you the finest pieces."}
             </p>
@@ -304,21 +313,12 @@ const Footer = () => {
                   <li className="flex items-start">
                     <MapPin className="w-4 h-4 mr-2.5 mt-0.5 text-gold-500 flex-shrink-0" />
                     <a
-                        href="https://www.google.com/maps/place/PANSTELLIA/@11.6176492,79.5385022,17z/data=!4m9!1m2!2m1!1s9A,+Indhira+Nagar,+Neyveli,+Cuddalore,+TamilNadu,+India!3m5!1s0x3a54b1082d35dde9:0x520053a2012e2e29!8m2!3d11.617644!4d79.5410825!16s%2Fg%2F11njy63n3d!5m1!1e4?entry=ttu&g_ep=EgoyMDI2MDYyOC4wIKXMDSoASAFQAw%3D%3D"
+                        href={cms.contact?.mapLink || MAP_DIRECTIONS_LINK}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-luxury-300 hover:text-gold-400 transition-colors underline-offset-2 hover:underline"
                       >
-                        {cms.contact?.address ? (
-                          cms.contact.address
-                        ) : (
-                          <>
-                            
-                            9A, Indra Nagar,<br />
-                            Neyveli, Cuddalore,<br />
-                            Tamil Nadu, India
-                          </>
-                        )}
+                        {cms.contact?.address || SITE_ADDRESS}
                     </a>
                   </li>
                   <li className="flex items-center">

@@ -98,8 +98,8 @@ export const ProductProvider = ({ children }) => {
   const DEFAULT_COLLECTIONS = [
     { id: 'gold', name: 'Luxe Ring', category: 'Gold', enabled: true, order: 0, icon: 'Gem', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817101/ChatGPT_Image_Jun_30_2026_03_33_25_PM_rmxgvr.png' },
     { id: 'silver', name: 'Royal Bracelets', category: 'Silver', enabled: true, order: 1, icon: 'CircleDot', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817368/ChatGPT_Image_Jun_30_2026_03_35_17_PM_hylxo4.png' },
-    { id: 'lux-wear', name: 'Elite Series', category: 'Lux Wear', enabled: true, order: 2, icon: 'Crown', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817401/ChatGPT_Image_Jun_30_2026_03_34_47_PM_ugzgsu.png' },
-    { id: 'elegant-spark', name: 'Elegant Spark', category: 'Elegant Spark', enabled: true, order: 3, icon: 'Sparkles', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817390/ChatGPT_Image_Jun_30_2026_03_33_55_PM_smfn9p.png' },
+    { id: 'lux-wear', name: 'Elite Series', category: 'Lux Wear', enabled: true, order: 2, icon: 'Crown', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817390/ChatGPT_Image_Jun_30_2026_03_33_55_PM_smfn9p.png' },
+    { id: 'elegant-spark', name: 'Elegant Spark', category: 'Elegant Spark', enabled: true, order: 3, icon: 'Sparkles', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817401/ChatGPT_Image_Jun_30_2026_03_34_47_PM_ugzgsu.png' },
     { id: 'party-wear', name: 'Piercings', category: 'Party Wear', enabled: true, order: 4, icon: 'Diamond', image: 'https://res.cloudinary.com/omoikkzf/image/upload/v1782817380/ChatGPT_Image_Jun_30_2026_03_34_11_PM_hpvfmm.png' }
   ];
 

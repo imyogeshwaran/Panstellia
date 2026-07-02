@@ -183,7 +183,7 @@ const Careers = () => {
       <div className="py-6 text-center border-t border-white/10 bg-[#2B1F13]">
         <p className="text-[#f5f0e8]/60 text-sm flex items-center justify-center font-light">
           <MapPin className="w-4 h-4 mr-2 text-[#C89A4F]" />
-          9A, Indra Nagar, Neyveli, Cuddalore, TamilNadu, India
+          9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801
         </p>
       </div>
     </div>

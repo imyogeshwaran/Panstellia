@@ -91,9 +91,8 @@ const ReturnPolicyPage = () => {
               <h3 className="font-semibold text-luxury-900 mb-2">Return Address:</h3>
               <address className="text-luxury-700 not-italic">
                 PANSTELLIA<br />
-                9A, Indra Nagar,<br />
-                Neyveli, Cuddalore,<br />
-                Tamil Nadu, India
+                9/A, M.R.K Salai, Indira Nagar, Indranagar,<br />
+                Neyveli T.S, Tamil Nadu 607801
               </address>
             </div>
           </section>
