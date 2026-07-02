@@ -29,7 +29,7 @@ import shiprocketService from '../../services/shiprocket';
 import {
   STATUS_PIPELINE, PRIORITY_CONFIG, normalizeStatus,
   detectDelay, computeSLAStatus, estimateDelivery,
-  isHighValueOrder, formatOrderDate, formatShortDate, formatINR,
+  isHighValueOrder, formatOrderDate, formatShortDate, formatINR, getOrderDisplayId,
 } from '../../services/orderStatus';
 import OrderTimeline, { StatusBadge, ActivityTimeline, getStatusConfig } from '../../components/UI/OrderTimeline';
 
@@ -533,7 +533,7 @@ export default function AdminOrderDetail() {
           </button>
           <span className="text-luxury-300">/</span>
           <span className="text-sm font-bold text-luxury-900 font-mono">
-            #{id?.slice(-8).toUpperCase()}
+            #{getOrderDisplayId(id)}
           </span>
         </div>
 

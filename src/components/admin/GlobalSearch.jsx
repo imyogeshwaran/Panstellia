@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, X, ShoppingBag, Package, Clock, ArrowRight } from 'lucide-react';
+import { getOrderDisplayId } from '../../services/orderStatus';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../context/ProductContext';
 import { clientSearch } from '../../utils/searchTokens';
@@ -121,7 +122,7 @@ export default function GlobalSearch() {
       .map(o => ({
         type: 'order',
         id: o.id,
-        label: `#${o.id?.slice(-8).toUpperCase()}`,
+        label: `#${getOrderDisplayId(o)}`,
         sub: `${o.customerName || o.name || 'Customer'} · ₹${Number(o.total || 0).toLocaleString('en-IN')} · ${o.status || 'processing'}`,
         path: '/admin/orders',
         icon: ShoppingBag,

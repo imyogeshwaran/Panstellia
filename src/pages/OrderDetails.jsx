@@ -24,6 +24,7 @@ import { getOptimizedImageUrl } from '../utils/imageUtils';
 import OrderTimeline, { StatusBadge } from '../components/UI/OrderTimeline';
 import { subscribeToOrder } from '../services/orderTracking';
 import { openCheckout, verifyPayment, createRetryOrder, cancelOrder } from '../services/payment';
+import { getOrderDisplayId } from '../services/orderStatus';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -199,7 +200,7 @@ const OrderDetailsPage = () => {
         amount: amountPaise,
         currency: order.currency || 'INR',
         name: 'Panstellia',
-        description: `Payment for Order #${(order.orderId || order.id).slice(0, 8).toUpperCase()}`,
+        description: `Payment for Order #${getOrderDisplayId(order)}`,
         image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=200',
         order_id: razorpayOrderId,
         prefill: {
@@ -375,7 +376,7 @@ const OrderDetailsPage = () => {
                   <InfoTile
                     icon={Hash}
                     label="Order ID"
-                    value={`#${order.id.slice(0, 8).toUpperCase()}`}
+                    value={`#${getOrderDisplayId(order)}`}
                   />
                   <InfoTile
                     icon={Calendar}

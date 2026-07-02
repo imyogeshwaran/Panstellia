@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { updateOrderStatus } from '../../services/orderTracking';
 import { db } from '../../services/firebase';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { formatINR } from '../../services/orderStatus';
+import { formatINR, getOrderDisplayId } from '../../services/orderStatus';
 import {
   Box, User, Clock, CheckCircle2, ChevronRight, Gift, Archive,
   ShieldAlert, Play, Hourglass, HelpCircle, PackageOpen
@@ -104,7 +104,7 @@ export default function FulfillmentPacking({ orders, selectedOrderFromKanban, on
 
       // 2. Advance status to packed
       await updateOrderStatus(selectedOrder.id, 'packed', user, `Order packed securely in ${packingDetails.packagingType}`);
-      toast.success(`Order #${selectedOrder.id.slice(-8).toUpperCase()} packed successfully!`);
+      toast.success(`Order #${getOrderDisplayId(selectedOrder)} packed successfully!`);
       setSelectedOrder(null);
       if (onClearSelection) onClearSelection();
     } catch (err) {
@@ -155,7 +155,7 @@ export default function FulfillmentPacking({ orders, selectedOrderFromKanban, on
               >
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-luxury-900 font-mono">
-                    #{order.id?.slice(-8).toUpperCase()}
+                    #{getOrderDisplayId(order)}
                   </p>
                   <p className="text-[11px] font-semibold text-luxury-600 truncate mt-0.5">
                     {order.customerName || order.name}
@@ -187,7 +187,7 @@ export default function FulfillmentPacking({ orders, selectedOrderFromKanban, on
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-luxury-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-luxury-900 font-mono">
-                  Packing Station Workspace — #{selectedOrder.id?.slice(-8).toUpperCase()}
+                  Packing Station Workspace — #{getOrderDisplayId(selectedOrder)}
                 </h3>
                 <p className="text-xs text-luxury-500 mt-0.5">
                   Packer: {user?.displayName || user?.email}
