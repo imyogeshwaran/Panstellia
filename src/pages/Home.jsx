@@ -4,7 +4,7 @@ import {
   Sparkles, ArrowRight, Star, Truck, Shield, RefreshCw, ChevronLeft, ChevronRight,
   BadgePercent, Gift, Home, Store, Gem, CircleDot, Crown, Diamond, Heart, Search
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useProducts } from '../context/ProductContext';
 import ProductCard from '../components/UI/ProductCard';
 import OptimizedImage from '../components/UI/OptimizedImage';
@@ -27,13 +27,13 @@ const ICON_MAP = {
 const CATEGORY_IMAGE_MAP = {
   'Gold': 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png',
   'Silver': 'https://i.ibb.co/p6W1S5xB/1000092270-ezremove.png',
-  'Lux Wear': 'https://i.ibb.co/VcdqqHdc/1000092272-ezremove.png',
+  'Lux Wear': 'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png',
   'Party Wear': 'https://i.ibb.co/xtcV8FKd/1000092275-ezremove.png',
-  'Elegant Spark': 'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png'
+  'Elegant Spark': 'https://i.ibb.co/VcdqqHdc/1000092272-ezremove.png'
 };
 
 const HomePage = () => {
-  const { getFeaturedProducts, products, loading } = useProducts();
+  const { getFeaturedProducts, products, loading, visibleCollections } = useProducts();
   const { shippingSettings } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentHeroImageIndex, setCurrentHeroImageIndex] = useState(0);
@@ -53,11 +53,11 @@ const HomePage = () => {
   );
 
   const RAW_COLLECTION_IMAGES = [
-    'https://res.cloudinary.com/omoikkzf/image/upload/v1782467387/file-0000000067f871faa8219b12c171e65f_gqejh1.png',
-    'https://i.ibb.co/v6D0LrQG/file-0000000035cc71fa963321ed9c5ee32f.png',
-    'https://i.ibb.co/HfHynYrb/file-00000000501871fabeb3ad48399d23bd.png',
-    'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png',
-    'https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817101/ChatGPT_Image_Jun_30_2026_03_33_25_PM_rmxgvr.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817368/ChatGPT_Image_Jun_30_2026_03_35_17_PM_hylxo4.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817401/ChatGPT_Image_Jun_30_2026_03_34_47_PM_ugzgsu.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817380/ChatGPT_Image_Jun_30_2026_03_34_11_PM_hpvfmm.png',
+    'https://res.cloudinary.com/omoikkzf/image/upload/v1782817390/ChatGPT_Image_Jun_30_2026_03_33_55_PM_smfn9p.png',
   ];
   const collectionImages = RAW_COLLECTION_IMAGES.map((url) =>
     getOptimizedImageUrl(url, { width: 800, quality: 80 })
@@ -119,33 +119,14 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, [slidesCount]);
 
-  const categories = [
-    {
-      name: 'Gold',
-      image: getOptimizedImageUrl('https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png', { width: 600 }),
-      count: products.filter(p => p.category === 'Gold').length
-    },
-    {
-      name: 'Silver',
-      image: getOptimizedImageUrl('https://i.ibb.co/p6W1S5xB/1000092270-ezremove.png', { width: 600 }),
-      count: products.filter(p => p.category === 'Silver').length
-    },
-    {
-      name: 'Lux Wear',
-      image: getOptimizedImageUrl('https://i.ibb.co/VcdqqHdc/1000092272-ezremove.png', { width: 600 }),
-      count: products.filter(p => p.category === 'Lux Wear').length
-    },
-    {
-      name: 'Party Wear',
-      image: getOptimizedImageUrl('https://i.ibb.co/xtcV8FKd/1000092275-ezremove.png', { width: 600 }),
-      count: products.filter(p => p.category === 'Party Wear').length
-    },
-    {
-      name: 'Elegant Spark',
-      image: getOptimizedImageUrl('https://i.ibb.co/DD38dQ8Q/file-000000008b207207972a2996aa7d3be3.png', { width: 600 }),
-      count: products.filter(p => p.category === 'Elegant Spark').length
-    }
-  ];
+  const categories = useMemo(() => {
+    return visibleCollections.map(col => ({
+      name: col.category,
+      image: col.image || 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png',
+      count: col.count,
+      displayName: col.name
+    }));
+  }, [visibleCollections]);
 
   const features = [
     {
@@ -165,7 +146,7 @@ const HomePage = () => {
     {
       icon: RefreshCw,
       title: 'Easy Returns',
-      description: '3-4 days return policy'
+      description: '2-day return policy'
     },
     {
       icon: Star,
@@ -421,12 +402,23 @@ const HomePage = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             {list.filter(catName => {
+              const matchesVisible = visibleCollections.some(col => col.category === catName);
+              if (!matchesVisible) return false;
               const count = products.filter(p => p.category === catName).length;
               if (hideEmptyCollections && count === 0) return false;
               return true;
             }).map((catName, index) => {
-              const imgUrl = CATEGORY_IMAGE_MAP[catName] || 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png';
+              const col = visibleCollections.find(c => c.category === catName);
+                let imgUrl = col?.image || CATEGORY_IMAGE_MAP[catName] || 'https://i.ibb.co/4gRy3WYW/Use-AI-Image-May-19-2026-13-21-30.png';
+                // Force-swap images for Lux Wear <-> Elegant Spark so admin images don't block this change
+                if (catName === 'Lux Wear' || catName === 'Elegant Spark') {
+                  const other = catName === 'Lux Wear' ? 'Elegant Spark' : 'Lux Wear';
+                  const otherCol = visibleCollections.find(c => c.category === other);
+                  imgUrl = otherCol?.image || CATEGORY_IMAGE_MAP[other] || imgUrl;
+                }
               const count = products.filter(p => p.category === catName).length;
+              const displayName = col?.name || getCategoryLabel(catName);
+              const toUrl = catName === 'Elegant Spark' ? '/category/elegant-spark' : `/products?category=${encodeURIComponent(catName)}`;
               return (
                 <motion.div
                   key={catName}
@@ -436,10 +428,10 @@ const HomePage = () => {
                   transition={{ delay: index * 0.08 }}
                   className="relative rounded-xl overflow-hidden h-40 sm:h-48 cursor-pointer group shadow-lg"
                 >
-                  <Link to={`/products?category=${encodeURIComponent(catName)}`} className="block w-full h-full">
+                  <Link to={toUrl} className="block w-full h-full">
                     <OptimizedImage
                       src={getOptimizedImageUrl(imgUrl, { width: 600 })}
-                      alt={getCategoryLabel(catName)}
+                      alt={displayName}
                       className="w-full h-full transform group-hover:scale-110 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-all duration-300" />
@@ -451,7 +443,7 @@ const HomePage = () => {
 
                     <div className="absolute bottom-0 left-0 right-0 p-4 z-10 text-center">
                       <h3 className="text-white font-serif text-lg md:text-xl font-bold tracking-wide transition-all group-hover:scale-105 duration-300">
-                        {getCategoryLabel(catName)}
+                        {displayName}
                       </h3>
                     </div>
                   </Link>
@@ -537,7 +529,7 @@ const HomePage = () => {
   };
 
   const renderBannerSection = (sec) => {
-    const images = sec.images || collectionImages;
+    const images = collectionImages;
     return (
       <section className="py-16 bg-gradient-to-r from-gold-500 to-gold-600 relative overflow-hidden shadow-inner">
         <div className="absolute inset-0 bg-pattern opacity-20" />
@@ -573,7 +565,7 @@ const HomePage = () => {
                     className="absolute inset-0"
                   >
                     <OptimizedImage
-                      src={getOptimizedImageUrl(img, { width: 800, quality: 80 })}
+                      src={img}
                       alt={`Collection ${index + 1}`}
                       priority={index === 0}
                       className="absolute inset-0 w-full h-full"
@@ -604,8 +596,8 @@ const HomePage = () => {
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
                       className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex % images.length
-                          ? 'bg-white w-6'
-                          : 'bg-white/50 hover:bg-white'
+                        ? 'bg-white w-6'
+                        : 'bg-white/50 hover:bg-white'
                         }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
@@ -863,35 +855,38 @@ const HomePage = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {categories.filter(c => hideEmptyCollections ? c.count > 0 : true).map((category, index) => (
-              <motion.div
-                key={category.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.08 }}
-                className="relative rounded-xl overflow-hidden h-40 sm:h-48 cursor-pointer group shadow-lg"
-              >
-                <Link to={`/products?category=${category.name}`} className="block w-full h-full">
-                  <OptimizedImage
-                    src={category.image}
-                    alt={getCategoryLabel(category.name)}
-                    className="w-full h-full transform group-hover:scale-110 transition-transform duration-500 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-all duration-300" />
+            {categories.filter(c => hideEmptyCollections ? c.count > 0 : true).map((category, index) => {
+              const toUrl = category.name === 'Elegant Spark' ? '/category/elegant-spark' : `/products?category=${encodeURIComponent(category.name)}`;
+              return (
+                <motion.div
+                  key={category.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.08 }}
+                  className="relative rounded-xl overflow-hidden h-40 sm:h-48 cursor-pointer group shadow-lg"
+                >
+                  <Link to={toUrl} className="block w-full h-full">
+                    <OptimizedImage
+                      src={category.image}
+                      alt={category.displayName}
+                      className="w-full h-full transform group-hover:scale-110 transition-transform duration-500 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-all duration-300" />
 
-                  <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-luxury-900 text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm">
-                    {category.count} items
-                  </span>
+                    <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-luxury-900 text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm">
+                      {category.count} items
+                    </span>
 
-                  <div className="absolute bottom-0 left-0 right-0 p-4 z-10 text-center">
-                    <h3 className="text-white font-serif text-lg md:text-xl font-bold tracking-wide transition-all group-hover:scale-105 duration-300">
-                      {getCategoryLabel(category.name)}
-                    </h3>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 z-10 text-center">
+                      <h3 className="text-white font-serif text-lg md:text-xl font-bold tracking-wide transition-all group-hover:scale-105 duration-300">
+                        {category.displayName}
+                      </h3>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1022,8 +1017,8 @@ const HomePage = () => {
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
                       className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                          ? 'bg-white w-6'
-                          : 'bg-white/50 hover:bg-white'
+                        ? 'bg-white w-6'
+                        : 'bg-white/50 hover:bg-white'
                         }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />

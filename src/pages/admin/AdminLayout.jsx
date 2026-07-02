@@ -25,6 +25,7 @@ import {
   Sparkles,
   Gift,
   Star,
+  Award,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import GlobalSearch from '../../components/admin/GlobalSearch';
@@ -42,7 +43,7 @@ const NAV_GROUPS = [
     label: 'Operations',
     items: [
       { to: '/admin/orders', label: 'Orders', icon: ShoppingBag, roles: ['super_admin', 'admin', 'customer_support'] },
-      { to: '/admin/fulfillment', label: 'Fulfillment', icon: Zap, roles: ['super_admin', 'admin', 'inventory_manager', 'customer_support'] },
+      { to: '/admin/fulfillment', label: 'Fulfillment Operations', icon: Zap, roles: ['super_admin', 'admin', 'inventory_manager', 'customer_support'] },
       { to: '/admin/shipping', label: 'Shipping', icon: Truck, roles: ['super_admin', 'admin', 'inventory_manager', 'customer_support'] },
       { to: '/admin/shipping-fee', label: 'Shipping Fee', icon: DollarSign, roles: ['super_admin', 'admin'] },
       { to: '/admin/delayed', label: 'Delayed Orders', icon: Clock, alert: true, roles: ['super_admin', 'admin', 'inventory_manager', 'customer_support'] },
@@ -54,6 +55,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/products', label: 'Products', icon: Package, roles: ['super_admin', 'admin', 'content_manager', 'inventory_manager'] },
       { to: '/admin/collections', label: 'Collections & Filters', icon: Sparkles, roles: ['super_admin', 'admin', 'content_manager'] },
+      { to: '/admin/warranties', label: 'Warranty Details', icon: Award, roles: ['super_admin', 'admin', 'content_manager'] },
     ],
   },
   {

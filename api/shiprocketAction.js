@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
       // Read default dimensions & weights from config
       const configSnap = await db.collection('system_settings').doc('shiprocket').get();
-      let defaultPickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
+      let defaultPickupLocation = (process.env.SHIPROCKET_PICKUP_LOCATION || 'PANSTELLIA').trim().replace(/^"|"$/g, '');
       let defaultWeight = 0.1;
       let defaultLength = 10;
       let defaultBreadth = 10;
@@ -47,7 +47,9 @@ export default async function handler(req, res) {
 
       if (configSnap.exists) {
         const config = configSnap.data();
-        if (config.defaultPickupLocation) defaultPickupLocation = config.defaultPickupLocation;
+        if (config.defaultPickupLocation && config.defaultPickupLocation !== 'Primary') {
+          defaultPickupLocation = config.defaultPickupLocation;
+        }
         if (config.defaultWeight) defaultWeight = Number(config.defaultWeight);
         if (config.defaultLength) defaultLength = Number(config.defaultLength);
         if (config.defaultBreadth) defaultBreadth = Number(config.defaultBreadth);
@@ -83,19 +85,35 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Order must contain at least one item' });
       }
 
+      // Sanitize phone number (digits only, last 10 digits to remove +91/spaces)
+      const rawPhone = String(order.phone || '').replace(/\D/g, '');
+      const billingPhone = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+
+      // Concatenate and sanitize address (Shiprocket requires minimum 10 chars)
+      let billingAddress = (order.address || '').trim();
+      if (order.apartment) {
+        billingAddress = `${order.apartment}, ${billingAddress}`;
+      }
+      if (order.landmark) {
+        billingAddress = `${billingAddress} (Landmark: ${order.landmark})`;
+      }
+      if (billingAddress.length < 10) {
+        billingAddress = `${billingAddress} Shipping Address`;
+      }
+
       const payload = {
         order_id: order.orderId || orderDocId,
         order_date: getFormattedDate(order.createdAt),
         pickup_location: defaultPickupLocation,
         billing_customer_name: firstName,
         billing_last_name: lastName,
-        billing_address: order.address || 'N/A',
+        billing_address: billingAddress,
         billing_city: order.city || 'N/A',
         billing_pincode: String(order.pincode || ''),
         billing_state: order.state || 'N/A',
         billing_country: 'India',
         billing_email: order.customerEmail || 'no-email@panstellia.com',
-        billing_phone: String(order.phone || ''),
+        billing_phone: billingPhone,
         shipping_is_billing: true,
         order_items: orderItems,
         payment_method: paymentMethod,
@@ -155,7 +173,8 @@ export default async function handler(req, res) {
           shipmentId: response.shipment_id
         });
       } else {
-        throw new Error('Invalid response received from Shiprocket order creation API');
+        const errorDetails = response ? (response.errors || response.message || JSON.stringify(response)) : 'Empty response';
+        throw new Error(`Shiprocket API rejected order: ${typeof errorDetails === 'object' ? JSON.stringify(errorDetails) : errorDetails}`);
       }
     }
 
@@ -198,7 +217,8 @@ export default async function handler(req, res) {
           courier: awbData.courier_name
         });
       } else {
-        throw new Error(response?.response?.data?.message || 'Failed to assign AWB or response is empty.');
+        const errorMsg = response?.message || response?.response?.data?.message || JSON.stringify(response) || 'Failed to assign AWB or response is empty.';
+        throw new Error(`Shiprocket Error: ${errorMsg}`);
       }
     }
 

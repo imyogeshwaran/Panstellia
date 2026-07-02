@@ -39,6 +39,7 @@ const EMPTY_FORM = {
   nickelFree: false, hypoallergenic: false, tarnishResistant: false,
   stockQuantity: '', reorderThreshold: '5', reorderQuantity: '10',
   serialNumber: '', metalType: '', weight: '', certificationNumber: '',
+  warrantyId: '',
 };
 
 function StockBadge({ inStock, productStatus }) {
@@ -110,7 +111,7 @@ const SEARCH_CONFIG = {
 };
 
 export default function AdminProducts() {
-  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, addProduct, updateProduct, deleteProduct, warranties } = useProducts();
   const { isAdmin, user } = useAuth();
 
   const {
@@ -174,6 +175,7 @@ export default function AdminProducts() {
       image: p.image || '',
       imagesText: Array.isArray(p.images) ? p.images.join(', ') : '',
       imageFile: null, imagesFiles: [],
+      warrantyId: p.warrantyId || '',
     });
     setShowForm(true);
     setUploadStatus(''); setUploadError('');
@@ -199,6 +201,17 @@ export default function AdminProducts() {
       const reorderThreshold = parseInt(rest.reorderThreshold || 5, 10);
       const reorderQuantity = parseInt(rest.reorderQuantity || 10, 10);
       
+      const priceVal = parseInt(rest.price, 10);
+      if (isNaN(priceVal) || priceVal < 1) {
+        throw new Error('Price must be greater than or equal to 1.');
+      }
+      if (rest.originalPrice && parseInt(rest.originalPrice, 10) < 1) {
+        throw new Error('Original price must be greater than or equal to 1.');
+      }
+      if (stockQuantity < 0) {
+        throw new Error('Stock quantity cannot be negative.');
+      }
+
       const productData = {
         ...rest,
         price: parseInt(rest.price, 10),
@@ -209,9 +222,10 @@ export default function AdminProducts() {
         availableQuantity: stockQuantity - Number(rest.reservedQuantity || 0),
         id: editingProduct?.id || `prod_${Date.now()}`,
         inStock: stockQuantity > 0,
-        productStatus: stockQuantity > 0 ? (rest.productStatus === 'unavailable' ? 'available' : rest.productStatus) : 'unavailable',
+        productStatus: rest.productStatus || 'available',
         images: images,
         image: form.image || '',
+        warrantyId: form.warrantyId || '',
       };
 
       if (editingProduct) {
@@ -440,6 +454,14 @@ export default function AdminProducts() {
                     </select>
                   </FormField>
                 </div>
+                <FormField label="Warranty Override (Optional)">
+                  <select name="warrantyId" value={form.warrantyId || ''} onChange={handleInputChange} className={inputCls}>
+                    <option value="">No Override (Follow Collection/Category mapping rules)</option>
+                    {warranties && warranties.filter(w => w.status === 'active').map(w => (
+                      <option key={w.id} value={w.id}>{w.name} ({w.duration})</option>
+                    ))}
+                  </select>
+                </FormField>
                 <div className="flex flex-wrap items-center gap-6 mt-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="featured" checked={form.featured} onChange={handleInputChange} className="w-4 h-4 accent-gold-500" />

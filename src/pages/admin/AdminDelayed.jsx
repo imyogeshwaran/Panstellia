@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Clock, CheckCircle2, Filter, ArrowRight, ExternalLink, Zap, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToAllOrders, updateOrderStatus } from '../../services/orderTracking';
-import { STATUS_PIPELINE, normalizeStatus, detectDelay, formatINR } from '../../services/orderStatus';
+import { STATUS_PIPELINE, normalizeStatus, detectDelay, formatINR, getOrderDisplayId } from '../../services/orderStatus';
 import { StatusBadge } from '../../components/UI/OrderTimeline';
 import { toast } from 'react-toastify';
 
@@ -54,7 +54,7 @@ function DelayCard({ order, delay, onStatusUpdate, updating }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-bold text-luxury-900 font-mono">#{order.id?.slice(-8).toUpperCase()}</span>
+              <span className="text-sm font-bold text-luxury-900 font-mono">#{getOrderDisplayId(order)}</span>
               <StatusBadge status={order.status} />
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 isCrit ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'

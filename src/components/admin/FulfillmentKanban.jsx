@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateOrderStatus } from '../../services/orderTracking';
-import { normalizeStatus, detectDelay, formatINR } from '../../services/orderStatus';
+import { normalizeStatus, detectDelay, formatINR, getOrderDisplayId } from '../../services/orderStatus';
 import {
   AlertTriangle, ArrowRight, ArrowLeft, Clock,
   User, CheckCircle2, ChevronRight, Play, Archive, Ship
@@ -106,7 +106,7 @@ export default function FulfillmentKanban({ orders, onPackingSelect, onShippingS
     setUpdatingId(orderId);
     try {
       await updateOrderStatus(orderId, targetStatus, user);
-      toast.success(`Moved order #${orderId.slice(-8).toUpperCase()} to ${targetStatus}`);
+      toast.success(`Moved order #${getOrderDisplayId(orderId)} to ${targetStatus}`);
     } catch (err) {
       toast.error(err.message || 'Failed to update order status');
     } finally {
@@ -167,7 +167,7 @@ export default function FulfillmentKanban({ orders, onPackingSelect, onShippingS
 
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs font-bold text-luxury-900 font-mono">
-                        #{order.id?.slice(-8).toUpperCase()}
+                        #{getOrderDisplayId(order)}
                       </span>
                       <span className="text-xs font-semibold text-luxury-700">
                         {formatINR(order.total)}

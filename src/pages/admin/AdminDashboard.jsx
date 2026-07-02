@@ -10,7 +10,7 @@ import { useProducts } from '../../context/ProductContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { detectDelay, normalizeStatus } from '../../services/orderStatus';
+import { detectDelay, normalizeStatus, getOrderDisplayId } from '../../services/orderStatus';
 import { initializeDatabase } from '../../utils/dbSeeder';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
@@ -474,7 +474,7 @@ export default function AdminDashboard() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-luxury-900">#{order.id?.slice(-6).toUpperCase()}</span>
+                        <span className="text-xs font-bold text-luxury-900">#{getOrderDisplayId(order)}</span>
                         <StatusBadge status={order.status || 'processing'} />
                         {order.daysPending >= 3 && (
                           <span className="flex items-center gap-0.5 text-xs font-medium text-red-600">
@@ -620,7 +620,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-luxury-900 truncate">
-                        #{order.id?.slice(-6).toUpperCase()} · {order.customerName || order.name || 'Customer'}
+                        #{getOrderDisplayId(order)} · {order.customerName || order.name || 'Customer'}
                       </p>
                       <p className="text-xs text-luxury-500 truncate">
                         {order.items?.length || 0} item(s) · {formatINRFull(order.total)}

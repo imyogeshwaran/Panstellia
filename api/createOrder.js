@@ -1,6 +1,8 @@
 import admin from './_firebaseAdmin.js';
 import Razorpay from 'razorpay';
 import { handleCors } from './_cors.js';
+import { calculateCheckout, calculateShipping } from './_checkoutCalculations.js';
+import { validateCoupon, calculateCouponDiscount } from './_couponEngine.js';
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -140,8 +142,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid notes" });
     }
 
-    const amountNum = Number(amount);
-    if (!amountNum || !Number.isFinite(amountNum) || amountNum < 100) {
+    const parsedAmount = Number(amount);
+    if (!parsedAmount || !Number.isFinite(parsedAmount) || parsedAmount < 100) {
       return res.status(400).json({
         error: "Invalid amount. Minimum amount is 100 paise (Rs. 1)",
       });
@@ -165,7 +167,9 @@ export default async function handler(req, res) {
     const orderNumber = buildOrderNumber();
     const db = admin.firestore();
 
-    // Verify stock availability before calling Razorpay API
+    // Verify stock availability, fetch authentic prices, and recalculate totals before calling Razorpay API
+    let calculatedSubtotal = 0;
+    const verifiedItems = [];
     for (const item of orderItems) {
       const pSnap = await db.collection("products").doc(item.id).get();
       if (!pSnap.exists) {
@@ -178,7 +182,69 @@ export default async function handler(req, res) {
       if (available < item.quantity) {
         return res.status(400).json({ error: `Insufficient stock for "${item.name}". Only ${available} available.` });
       }
+
+      const realPrice = Number(pData.price ?? 0);
+      calculatedSubtotal += realPrice * item.quantity;
+      verifiedItems.push({
+        ...item,
+        price: realPrice
+      });
     }
+
+    // Verify user order eligibility (one-time usage check)
+    let userOrdersCount = 0;
+    if (totals.couponCode) {
+      const orderSnaps = await db.collection('orders')
+        .where('userId', '==', authUser.uid)
+        .where('couponCode', '==', String(totals.couponCode).toUpperCase())
+        .get();
+      const activeOrders = orderSnaps.docs.filter(d => d.data().status !== 'cancelled');
+      userOrdersCount = activeOrders.length;
+    }
+
+    // Recalculate coupon discount securely
+    let calculatedDiscount = 0;
+    if (totals.couponCode) {
+      const couponRef = db.collection('offers').doc(String(totals.couponCode).toUpperCase());
+      const couponSnap = await couponRef.get();
+      if (couponSnap.exists) {
+        const coupon = couponSnap.data();
+        const validation = validateCoupon(coupon, {
+          subtotal: calculatedSubtotal,
+          cartItems: verifiedItems,
+          userOrdersCount
+        });
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.error });
+        }
+        calculatedDiscount = calculateCouponDiscount(coupon, {
+          subtotal: calculatedSubtotal,
+          cartItems: verifiedItems
+        });
+      } else {
+        return res.status(400).json({ error: "Invalid coupon code" });
+      }
+    }
+
+    // Fetch shipping settings
+    const shippingSettingsSnap = await db.collection("ShippingSettings").doc("config").get();
+    const shippingSettings = shippingSettingsSnap.exists ? shippingSettingsSnap.data() : null;
+
+    // Use centralized shipping and checkout totals calculations
+    const shippingMethod = totals.shippingMethod || 'standard';
+    const totalsObj = calculateCheckout({
+      subtotal: calculatedSubtotal,
+      shippingMethod,
+      paymentMethod: 'razorpay',
+      discount: calculatedDiscount,
+      shippingSettings
+    });
+
+    const calculatedShipping = totalsObj.shipping;
+    const calculatedCodCharge = totalsObj.codCharge; // 0
+    const calculatedTax = totalsObj.tax; // 0
+    const calculatedTotal = totalsObj.total;
+    const amountNum = Math.round(calculatedTotal * 100); // securely calculated amount in paise
 
     console.log("[api/createOrder] Creating Razorpay order", {
       amount: amountNum,
@@ -210,13 +276,14 @@ export default async function handler(req, res) {
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       phone: customerInfo.phone,
-      items: orderItems,
-      subtotal: toNumber(totals.subtotal),
-      shipping: toNumber(totals.shipping),
-      tax: toNumber(totals.tax),
+      items: verifiedItems,
+      subtotal: calculatedSubtotal,
+      shipping: calculatedShipping,
+      codCharge: calculatedCodCharge,
+      tax: calculatedTax,
       couponCode: totals.couponCode || null,
-      couponDiscount: totals.couponDiscount ? toNumber(totals.couponDiscount) : 0,
-      total: totals.total ? toNumber(totals.total) : amountNum / 100,
+      couponDiscount: calculatedDiscount,
+      total: calculatedTotal,
       amount: amountNum,
       amountPaid: amountNum / 100,
       isPartialPayment: notes.is_partial === "true",
@@ -238,11 +305,11 @@ export default async function handler(req, res) {
 
     await paymentRef.set({
       ...commonOrderData,
-      orderDocId: null, // order not created yet
+      orderDocId: orderNumber, // The order's Firestore doc ID will be the custom orderNumber
     });
 
     const transactionResult = {
-      orderDocId: null,
+      orderDocId: orderNumber,
       paymentDocId: paymentRef.id,
     };
 

@@ -153,7 +153,7 @@ export const DEFAULT_CMS = {
   contact: {
     email: "support@panstellia.com",
     phone: "+91 78100 32622, +91 90802 32622",
-    address: "9A, Indra Nagar, Neyveli, Cuddalore, TamilNadu, India",
+    address: "9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801",
     instagram: "https://www.instagram.com/panstellia",
     facebook: "https://www.facebook.com/people/Panstellia-PS/61581753914404/"
   },
@@ -386,6 +386,14 @@ export async function initializeDatabase() {
       }
     } catch (err) {
       console.error('Failed to seed/update "Shooting Star Drops" product:', err);
+    }
+
+    // Seed default warranties and assignments
+    try {
+      const { seedDefaultWarranties } = await import('../services/warrantyService');
+      await seedDefaultWarranties();
+    } catch (err) {
+      console.error('Failed to seed warranties during database initialization:', err);
     }
 
     return { success: true };

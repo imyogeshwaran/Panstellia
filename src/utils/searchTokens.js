@@ -100,10 +100,18 @@ export function buildOrderTokens(order) {
     tokenize(String(field || '')).forEach(t => tokens.add(t));
   });
 
-  // Add order ID suffixes for partial ID search
+  // Add order ID prefixes and suffixes for partial ID search
   if (order.id) {
-    const suffix = order.id.slice(-8).toLowerCase();
-    for (let i = 2; i <= suffix.length; i++) tokens.add(suffix.slice(0, i));
+    const cleanId = String(order.id).trim();
+    const displayId = (cleanId.length === 20 && !cleanId.includes('-')) ? cleanId.slice(0, 8) : cleanId;
+    const lowerId = displayId.toLowerCase();
+    for (let i = 2; i <= lowerId.length; i++) {
+      tokens.add(lowerId.slice(0, i));
+    }
+    const suffix = cleanId.slice(-8).toLowerCase();
+    for (let i = 2; i <= suffix.length; i++) {
+      tokens.add(suffix.slice(0, i));
+    }
   }
 
   return Array.from(tokens).slice(0, 200);

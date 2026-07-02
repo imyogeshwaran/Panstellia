@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { db } from '../../services/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { useProducts } from '../../context/ProductContext';
 
 const defaultFaqs = [
   {
@@ -24,7 +25,7 @@ const defaultFaqs = [
     id: 3,
     category: 'Delivery',
     question: 'What is the average delivery time?',
-    answer: 'Standard delivery typically takes 5-7 business days within India. Express delivery options are available for faster shipping. Delivery times may vary based on your location and current order volume.'
+    answer: 'Standard delivery typically takes 2-4 business days across India. Express delivery options are available for faster shipping. Delivery times may vary based on your location and current order volume.'
   },
   {
     id: 4,
@@ -42,7 +43,7 @@ const defaultFaqs = [
     id: 6,
     category: 'Return',
     question: 'What is your return policy?',
-    answer: 'We offer a 30-day return policy from the date of purchase. Items must be unused, in original packaging, and in perfect condition. Please initiate returns through our website or contact our support team.'
+    answer: 'We offer a 2-day return policy from the date of purchase. Items must be unused, in original packaging, and in perfect condition. Please initiate returns through our website or contact our support team.'
   },
   {
     id: 7,
@@ -83,6 +84,9 @@ const defaultFaqs = [
 ];
 
 const Footer = () => {
+  const { visibleCollections, quickLinks = [] } = useProducts();
+  const SITE_ADDRESS = '9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801';
+  const MAP_DIRECTIONS_LINK = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(SITE_ADDRESS)}`;
   const [openSection, setOpenSection] = useState({
     quickLinks: false,
     customerService: false,
@@ -95,7 +99,7 @@ const Footer = () => {
     contact: {
       email: "support@panstellia.com",
       phone: "+91 78100 32622, +91 90802 32622",
-      address: "9A, Indra Nagar, Neyveli, Cuddalore, TamilNadu, India",
+      address: "9/A, M.R.K Salai, Indira Nagar, Indranagar, Neyveli T.S, Tamil Nadu 607801",
       instagram: "https://www.instagram.com/panstellia",
       facebook: "https://www.facebook.com/people/Panstellia-PS/61581753914404/"
     },
@@ -108,7 +112,14 @@ const Footer = () => {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'system_settings', 'cms'), (snapshot) => {
       if (snapshot.exists()) {
-        setCms(snapshot.data());
+        const data = snapshot.data();
+        // Override address and map link to ensure consistent sitewide address
+        const contact = {
+          ...(data.contact || {}),
+          address: SITE_ADDRESS,
+          mapLink: (data.contact && data.contact.mapLink) || MAP_DIRECTIONS_LINK
+        };
+        setCms({ ...data, contact });
       }
     }, (err) => {
       console.error("Error reading CMS settings in footer:", err);
@@ -143,7 +154,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="flex flex-col justify-start">
-            <img src="/favicon.svg" alt="Panstellia" className="h-12 w-auto mb-4 self-start" />
+            <img src="https://res.cloudinary.com/omoikkzf/image/upload/v1782807091/582758AE-6631-4766-BFCA-34594061A683_fycfgc.png" alt="Panstellia" className="h-12 w-auto mb-4 self-start object-contain" />
             <p className="text-luxury-300 text-sm leading-relaxed">
               {cms.about?.story || "Discover exquisite necklace jewelry for every occasion. From Elite Series elegance to piercing glamour, we bring you the finest pieces."}
             </p>
@@ -183,46 +194,35 @@ const Footer = () => {
               openSection.quickLinks ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0 md:max-h-full md:opacity-100'
             }`}>
               <ul className="space-y-2 mt-2 md:mt-0 text-sm">
-                <li>
-                  <Link to="/" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/products" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    Shop
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/products?category=Gold" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    {getCategoryLabel('Gold')} Collection
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/products?category=Lux Wear" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    {getCategoryLabel('Lux Wear')} Collection
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/products?category=Party%20Wear" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    {getCategoryLabel('Party Wear')}
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/category/elegant-spark" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    {getCategoryLabel('Elegant Spark')} Collection
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about-us" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/careers" className="text-luxury-300 hover:text-gold-400 transition-colors">
-                    Careers
-                  </Link>
-                </li>
+                {/* Before-collection static links (Home, Shop, etc.) */}
+                {quickLinks.filter(l => l.placement === 'before').map(link => (
+                  <li key={link.id}>
+                    <Link to={link.to} className="text-luxury-300 hover:text-gold-400 transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+
+                {/* Dynamic collection links */}
+                {visibleCollections.map(col => {
+                  const toUrl = col.category === 'Elegant Spark' ? '/category/elegant-spark' : `/products?category=${encodeURIComponent(col.category)}`;
+                  return (
+                    <li key={col.id}>
+                      <Link to={toUrl} className="text-luxury-300 hover:text-gold-400 transition-colors">
+                        {col.name} Collection
+                      </Link>
+                    </li>
+                  );
+                })}
+
+                {/* After-collection static links (About Us, Careers, etc.) */}
+                {quickLinks.filter(l => l.placement === 'after').map(link => (
+                  <li key={link.id}>
+                    <Link to={link.to} className="text-luxury-300 hover:text-gold-400 transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -313,12 +313,12 @@ const Footer = () => {
                   <li className="flex items-start">
                     <MapPin className="w-4 h-4 mr-2.5 mt-0.5 text-gold-500 flex-shrink-0" />
                     <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cms.contact?.address || "9A Indra Nagar Neyveli Cuddalore TamilNadu India")}`}
+                        href={cms.contact?.mapLink || MAP_DIRECTIONS_LINK}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-luxury-300 hover:text-gold-400 transition-colors underline-offset-2 hover:underline"
                       >
-                        {cms.contact?.address || "9A, Indra Nagar, Neyveli, Cuddalore, TamilNadu, India"}
+                        {cms.contact?.address || SITE_ADDRESS}
                     </a>
                   </li>
                   <li className="flex items-center">
@@ -454,6 +454,9 @@ const Footer = () => {
               </Link>
               <Link to="/shipping" className="text-luxury-400 hover:text-gold-400 transition-colors">
                 Shipping Policy
+              </Link>
+              <Link to="/return" className="text-luxury-400 hover:text-gold-400 transition-colors">
+                Return Policy
               </Link>
             </div>
           </div>
