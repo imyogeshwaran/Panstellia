@@ -60,6 +60,13 @@ export default async function handler(req, res) {
       }
       const pData = paymentDocSnap.data();
 
+      let orderSnap = null;
+      let orderRef = null;
+      if (pData.orderDocId) {
+        orderRef = db.collection("orders").doc(pData.orderDocId);
+        orderSnap = await transaction.get(orderRef);
+      }
+
       // Only release if it was still in pending_payment status
       if (pData.status === "pending_payment") {
         const productDocs = [];
@@ -96,8 +103,8 @@ export default async function handler(req, res) {
         };
 
         transaction.update(paymentDocRef, failedUpdate);
-        if (pData.orderDocId) {
-          transaction.update(db.collection("orders").doc(pData.orderDocId), failedUpdate);
+        if (orderRef && orderSnap && orderSnap.exists) {
+          transaction.update(orderRef, failedUpdate);
         }
       }
 

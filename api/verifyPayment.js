@@ -158,6 +158,11 @@ export default async function handler(req, res) {
         };
       }
 
+      // Read order document first to satisfy Firestore read-before-write constraint
+      let orderDocId = pData.orderDocId || pData.orderId;
+      const orderRef = db.collection("orders").doc(orderDocId);
+      const orderSnap = await transaction.get(orderRef);
+
       const productDocs = [];
       for (const item of pData.items) {
         const productRef = db.collection("products").doc(item.id);
@@ -235,10 +240,6 @@ export default async function handler(req, res) {
       };
 
       // Create order document in "orders" collection if it doesn't exist
-      let orderDocId = pData.orderDocId || pData.orderId;
-      const orderRef = db.collection("orders").doc(orderDocId);
-      const orderSnap = await transaction.get(orderRef);
-
       if (!orderSnap.exists) {
         const orderData = {
           userId: pData.userId,
