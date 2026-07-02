@@ -5,7 +5,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { updateOrderStatus } from '../../services/orderTracking';
-import { formatINR } from '../../services/orderStatus';
+import { formatINR, getOrderDisplayId } from '../../services/orderStatus';
 import {
   Hand, Filter, CheckCircle2, ChevronRight, Printer, CheckSquare,
   Square, Calendar, ArrowUpDown, RefreshCw, AlertTriangle
@@ -56,7 +56,7 @@ export default function FulfillmentPicking({ orders }) {
     setUpdatingId(orderId);
     try {
       await updateOrderStatus(orderId, 'picked', user, 'Picked and moved to Packing queue');
-      toast.success(`Order #${orderId.slice(-8).toUpperCase()} picked successfully.`);
+      toast.success(`Order #${getOrderDisplayId(orderId)} picked successfully.`);
       // Clean up checked items
       setCheckedItems(prev => {
         const copy = { ...prev };
@@ -84,7 +84,7 @@ export default function FulfillmentPicking({ orders }) {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Picking Sheet - #${order.id?.slice(-8).toUpperCase()}</title>
+          <title>Picking Sheet - #${getOrderDisplayId(order)}</title>
           <style>
             body { font-family: 'Outfit', sans-serif; color: #1e293b; padding: 40px; }
             h1 { font-family: serif; font-size: 24px; color: #b8860b; border-bottom: 2px solid #b8860b; padding-bottom: 10px; }
@@ -98,7 +98,7 @@ export default function FulfillmentPicking({ orders }) {
           <h1>PANSTELLIA — WAREHOUSE PICKING LIST</h1>
           <div class="meta">
             <div>
-              <p><strong>Order Reference:</strong> #${order.id?.slice(-8).toUpperCase()}</p>
+              <p><strong>Order Reference:</strong> #${getOrderDisplayId(order)}</p>
               <p><strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN')}</p>
               <p><strong>Customer Name:</strong> ${order.customerName || order.name || 'N/A'}</p>
             </div>
@@ -198,7 +198,7 @@ export default function FulfillmentPicking({ orders }) {
                       Queue #{orderIdx + 1}
                     </span>
                     <h3 className="text-sm font-bold text-luxury-900 font-mono">
-                      #{order.id?.slice(-8).toUpperCase()}
+                      #{getOrderDisplayId(order)}
                     </h3>
                     {order.priority && order.priority !== 'normal' && (
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${

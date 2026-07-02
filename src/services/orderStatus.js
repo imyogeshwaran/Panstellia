@@ -547,3 +547,22 @@ export function formatINRCompact(v) {
   if (num >= 1000) return `₹${(num / 1000).toFixed(1)}k`;
   return `₹${num.toLocaleString('en-IN')}`;
 }
+
+/**
+ * Resolves a clean, consistent display Order ID for any order object or raw ID string.
+ * - Auto-generated Firestore IDs (20-char alphanumeric without hyphens) are sliced (0 to 8) for display/compatibility.
+ * - Custom order numbers (containing hyphens or not exactly 20-char) are returned in full.
+ */
+export function getOrderDisplayId(orderOrId) {
+  if (!orderOrId) return '—';
+  
+  const idStr = typeof orderOrId === 'object'
+    ? (orderOrId.orderId || orderOrId.id || '')
+    : orderOrId;
+    
+  const cleanId = String(idStr).trim();
+  if (cleanId.length === 20 && !cleanId.includes('-')) {
+    return cleanId.slice(0, 8).toUpperCase();
+  }
+  return cleanId;
+}

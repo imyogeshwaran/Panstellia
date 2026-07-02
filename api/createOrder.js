@@ -226,13 +226,18 @@ export default async function handler(req, res) {
       }
     }
 
+    // Fetch shipping settings
+    const shippingSettingsSnap = await db.collection("ShippingSettings").doc("config").get();
+    const shippingSettings = shippingSettingsSnap.exists ? shippingSettingsSnap.data() : null;
+
     // Use centralized shipping and checkout totals calculations
     const shippingMethod = totals.shippingMethod || 'standard';
     const totalsObj = calculateCheckout({
       subtotal: calculatedSubtotal,
       shippingMethod,
       paymentMethod: 'razorpay',
-      discount: calculatedDiscount
+      discount: calculatedDiscount,
+      shippingSettings
     });
 
     const calculatedShipping = totalsObj.shipping;
@@ -300,11 +305,11 @@ export default async function handler(req, res) {
 
     await paymentRef.set({
       ...commonOrderData,
-      orderDocId: null, // order not created yet
+      orderDocId: orderNumber, // The order's Firestore doc ID will be the custom orderNumber
     });
 
     const transactionResult = {
-      orderDocId: null,
+      orderDocId: orderNumber,
       paymentDocId: paymentRef.id,
     };
 

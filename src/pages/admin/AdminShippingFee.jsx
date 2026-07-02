@@ -3,7 +3,7 @@ import { doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, limit
 import { db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Truck, DollarSign, Save, RotateCcw, History, AlertTriangle, Loader2 } from 'lucide-react';
+import { Truck, DollarSign, Save, RotateCcw, History, Loader2, Sparkles } from 'lucide-react';
 
 export default function AdminShippingFee() {
   const { user } = useAuth();
@@ -12,8 +12,24 @@ export default function AdminShippingFee() {
   const [shippingSettings, setShippingSettings] = useState({
     shippingEnabled: true,
     freeShippingEnabled: true,
-    shippingCharge: 99,
-    freeShippingThreshold: 999
+    shippingCharge: 49,
+    freeShippingThreshold: 999,
+    methods: {
+      standard: {
+        enabled: true,
+        name: "Standard Shipping",
+        description: "Surface Delivery",
+        price: 49,
+        deliveryTime: "Up to 7 Days"
+      },
+      premium: {
+        enabled: true,
+        name: "Premium Shipping",
+        description: "Blue Dart Air",
+        price: 129,
+        deliveryTime: "2–4 Days"
+      }
+    }
   });
   
   const [logs, setLogs] = useState([]);
@@ -31,8 +47,24 @@ export default function AdminShippingFee() {
           setShippingSettings({
             shippingEnabled: data.shippingEnabled ?? true,
             freeShippingEnabled: data.freeShippingEnabled ?? true,
-            shippingCharge: Number(data.shippingCharge ?? 99),
-            freeShippingThreshold: Number(data.freeShippingThreshold ?? 999)
+            shippingCharge: Number(data.shippingCharge ?? 49),
+            freeShippingThreshold: Number(data.freeShippingThreshold ?? 999),
+            methods: {
+              standard: {
+                enabled: data.methods?.standard?.enabled !== false,
+                name: data.methods?.standard?.name || "Standard Shipping",
+                description: data.methods?.standard?.description || "Surface Delivery",
+                price: Number(data.methods?.standard?.price !== undefined ? data.methods.standard.price : (data.shippingCharge ?? 49)),
+                deliveryTime: data.methods?.standard?.deliveryTime || "Up to 7 Days"
+              },
+              premium: {
+                enabled: data.methods?.premium?.enabled !== false,
+                name: data.methods?.premium?.name || "Premium Shipping",
+                description: data.methods?.premium?.description || "Blue Dart Air",
+                price: Number(data.methods?.premium?.price ?? 129),
+                deliveryTime: data.methods?.premium?.deliveryTime || "2–4 Days"
+              }
+            }
           });
         } else {
           // Admin auto-initializes settings document if it doesn't exist
@@ -40,18 +72,29 @@ export default function AdminShippingFee() {
           const defaultSettings = {
             shippingEnabled: true,
             freeShippingEnabled: true,
-            shippingCharge: 99,
+            shippingCharge: 49,
             freeShippingThreshold: 999,
+            methods: {
+              standard: {
+                enabled: true,
+                name: "Standard Shipping",
+                description: "Surface Delivery",
+                price: 49,
+                deliveryTime: "Up to 7 Days"
+              },
+              premium: {
+                enabled: true,
+                name: "Premium Shipping",
+                description: "Blue Dart Air",
+                price: 129,
+                deliveryTime: "2–4 Days"
+              }
+            },
             updatedBy: user?.email || 'System (Admin Init)',
             updatedAt: new Date().toISOString()
           };
           await setDoc(configRef, defaultSettings);
-          setShippingSettings({
-            shippingEnabled: defaultSettings.shippingEnabled,
-            freeShippingEnabled: defaultSettings.freeShippingEnabled,
-            shippingCharge: defaultSettings.shippingCharge,
-            freeShippingThreshold: defaultSettings.freeShippingThreshold
-          });
+          setShippingSettings(defaultSettings);
         }
         await loadLogs();
       } catch (err) {
@@ -75,7 +118,6 @@ export default function AdminShippingFee() {
       const fetchedLogs = [];
       snap.forEach(d => {
         const item = d.data();
-        // Only show history related to shipping
         if (item.module === 'shipping') {
           fetchedLogs.push({ id: d.id, ...item });
         }
@@ -88,8 +130,12 @@ export default function AdminShippingFee() {
 
   const handleSave = async () => {
     // Validations
-    if (shippingSettings.shippingCharge < 0) {
-      toast.error('Shipping charge must be greater than or equal to 0');
+    if (shippingSettings.methods.standard.price < 0) {
+      toast.error('Standard shipping price must be greater than or equal to 0');
+      return;
+    }
+    if (shippingSettings.methods.premium.price < 0) {
+      toast.error('Premium shipping price must be greater than or equal to 0');
       return;
     }
     if (shippingSettings.freeShippingThreshold < 0) {
@@ -102,6 +148,7 @@ export default function AdminShippingFee() {
       const configRef = doc(db, 'ShippingSettings', 'config');
       const updatedData = {
         ...shippingSettings,
+        shippingCharge: Number(shippingSettings.methods.standard.price), // sync for compatibility
         updatedBy: user?.email || 'Admin',
         updatedAt: new Date().toISOString()
       };
@@ -111,10 +158,10 @@ export default function AdminShippingFee() {
       // Add to history
       await addDoc(collection(db, 'settings_history'), {
         module: 'shipping',
-        data: shippingSettings,
+        data: updatedData,
         changedBy: user?.email || 'Admin',
         changedAt: new Date().toISOString(),
-        summary: `Updated settings: Enabled=${shippingSettings.shippingEnabled}, FreeEnabled=${shippingSettings.freeShippingEnabled}, Charge=₹${shippingSettings.shippingCharge}, Threshold=₹${shippingSettings.freeShippingThreshold}`
+        summary: `Updated settings: Std Price=₹${updatedData.methods.standard.price} (${updatedData.methods.standard.enabled ? 'Enabled' : 'Disabled'}), Prem Price=₹${updatedData.methods.premium.price} (${updatedData.methods.premium.enabled ? 'Enabled' : 'Disabled'}), Threshold=₹${updatedData.freeShippingThreshold}`
       });
 
       toast.success('Shipping settings updated successfully!');
@@ -132,32 +179,39 @@ export default function AdminShippingFee() {
     try {
       const { data } = log;
       const configRef = doc(db, 'ShippingSettings', 'config');
+      
       const rollbackData = {
         shippingEnabled: data.shippingEnabled ?? true,
         freeShippingEnabled: data.freeShippingEnabled ?? true,
-        shippingCharge: Number(data.shippingCharge ?? 99),
+        shippingCharge: Number(data.methods?.standard?.price !== undefined ? data.methods.standard.price : (data.shippingCharge ?? 49)),
         freeShippingThreshold: Number(data.freeShippingThreshold ?? 999),
+        methods: {
+          standard: {
+            enabled: data.methods?.standard?.enabled !== false,
+            name: data.methods?.standard?.name || "Standard Shipping",
+            description: data.methods?.standard?.description || "Surface Delivery",
+            price: Number(data.methods?.standard?.price !== undefined ? data.methods.standard.price : (data.shippingCharge ?? 49)),
+            deliveryTime: data.methods?.standard?.deliveryTime || "Up to 7 Days"
+          },
+          premium: {
+            enabled: data.methods?.premium?.enabled !== false,
+            name: data.methods?.premium?.name || "Premium Shipping",
+            description: data.methods?.premium?.description || "Blue Dart Air",
+            price: Number(data.methods?.premium?.price ?? 129),
+            deliveryTime: data.methods?.premium?.deliveryTime || "2–4 Days"
+          }
+        },
         updatedBy: user?.email || 'Admin',
         updatedAt: new Date().toISOString()
       };
 
       await setDoc(configRef, rollbackData);
-      setShippingSettings({
-        shippingEnabled: rollbackData.shippingEnabled,
-        freeShippingEnabled: rollbackData.freeShippingEnabled,
-        shippingCharge: rollbackData.shippingCharge,
-        freeShippingThreshold: rollbackData.freeShippingThreshold
-      });
+      setShippingSettings(rollbackData);
 
       // Add rollback action to history logs
       await addDoc(collection(db, 'settings_history'), {
         module: 'shipping',
-        data: {
-          shippingEnabled: rollbackData.shippingEnabled,
-          freeShippingEnabled: rollbackData.freeShippingEnabled,
-          shippingCharge: rollbackData.shippingCharge,
-          freeShippingThreshold: rollbackData.freeShippingThreshold
-        },
+        data: rollbackData,
         changedBy: user?.email || 'Admin',
         changedAt: new Date().toISOString(),
         summary: `Rolled back shipping settings to version from ${new Date(log.changedAt).toLocaleString()}`
@@ -173,6 +227,19 @@ export default function AdminShippingFee() {
     }
   };
 
+  const handleMethodChange = (methodKey, field, value) => {
+    setShippingSettings(prev => ({
+      ...prev,
+      methods: {
+        ...prev.methods,
+        [methodKey]: {
+          ...prev.methods[methodKey],
+          [field]: value
+        }
+      }
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -186,27 +253,28 @@ export default function AdminShippingFee() {
       {/* Header */}
       <div>
         <h1 className="font-serif text-3xl font-bold text-luxury-900 flex items-center gap-2">
-          <Truck className="w-8 h-8 text-gold-600" />
-          Shipping Fee Management
+          <Truck className="w-8 h-8 text-gold-650" />
+          Shipping Settings Control Panel
         </h1>
         <p className="text-sm text-luxury-500 mt-1">
-          Configure standard shipping fees, free shipping thresholds, and toggle constraints for storefront cart calculations.
+          Dynamically configure names, descriptions, prices, and status parameters for Standard and Premium delivery options.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Settings Configuration Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Toggles Card */}
+          
+          {/* Main Toggles Card */}
           <div className="bg-white rounded-2xl p-6 border border-luxury-100 shadow-md space-y-6">
-            <h3 className="text-base font-bold text-luxury-900 border-b border-luxury-100 pb-3">Toggles & Status</h3>
+            <h3 className="text-base font-bold text-luxury-900 border-b border-luxury-100 pb-3">Master Rules</h3>
             
-            {/* Toggle 1: Enable/Disable Shipping Charges */}
+            {/* Toggle 1: Enable Shipping Charges */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-luxury-900">Enable Shipping Charges</p>
+                <p className="text-sm font-bold text-luxury-900">Enable Shipping System</p>
                 <p className="text-xs text-luxury-500 mt-0.5">
-                  If disabled, shipping will be free for all orders on the website.
+                  If disabled, shipping will be free for all orders across the checkout.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -223,12 +291,12 @@ export default function AdminShippingFee() {
               </label>
             </div>
 
-            {/* Toggle 2: Enable/Disable Free Shipping Threshold */}
+            {/* Toggle 2: Free Shipping Threshold */}
             <div className="flex items-center justify-between pt-4 border-t border-luxury-50">
               <div>
                 <p className="text-sm font-bold text-luxury-900">Enable Free Shipping Threshold</p>
                 <p className="text-xs text-luxury-500 mt-0.5">
-                  If disabled, standard shipping charge will always apply regardless of total order amount.
+                  Unlock free Standard shipping when cart total hits the configured minimum threshold value.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -249,53 +317,177 @@ export default function AdminShippingFee() {
                 }`}></div>
               </label>
             </div>
+            
+            {shippingSettings.freeShippingEnabled && shippingSettings.shippingEnabled && (
+              <div className="pt-4 border-t border-luxury-50">
+                <label className="block text-xs font-bold text-luxury-700 uppercase tracking-wider mb-2">
+                  Free Shipping Minimum Threshold (₹)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-luxury-400 font-bold">₹</div>
+                  <input
+                    type="number"
+                    value={shippingSettings.freeShippingThreshold}
+                    onChange={(e) => setShippingSettings({
+                      ...shippingSettings,
+                      freeShippingThreshold: Math.max(0, parseInt(e.target.value) || 0)
+                    })}
+                    className="w-full pl-8 input-field p-3 text-sm border rounded-lg focus:ring-gold-500"
+                    min="0"
+                  />
+                </div>
+                <p className="text-[11px] text-luxury-400 mt-1">Customers shopping at or above this cart value get standard shipping free.</p>
+              </div>
+            )}
           </div>
 
-          {/* Charges inputs card */}
-          <div className="bg-white rounded-2xl p-6 border border-luxury-100 shadow-md space-y-6">
-            <h3 className="text-base font-bold text-luxury-900 border-b border-luxury-100 pb-3">Shipping Values</h3>
+          {/* Dynamic Methods Configurations */}
+          <div className="space-y-6">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Field 1: Standard Shipping Charge */}
-              <div>
-                <label className="block text-xs font-bold text-luxury-700 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-luxury-400" />
-                  Standard Shipping Charge (₹)
+            {/* Standard Shipping Config Card */}
+            <div className={`bg-white rounded-2xl p-6 border shadow-md space-y-4 transition-all ${
+              shippingSettings.methods.standard.enabled ? 'border-luxury-100' : 'border-red-100 bg-red-50/5'
+            }`}>
+              <div className="flex items-center justify-between border-b border-luxury-100 pb-3">
+                <h3 className="text-base font-bold text-luxury-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                  Standard Shipping Option Settings
+                </h3>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={shippingSettings.methods.standard.enabled}
+                    disabled={!shippingSettings.shippingEnabled}
+                    onChange={(e) => handleMethodChange('standard', 'enabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-luxury-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-luxury-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gold-500"></div>
                 </label>
-                <input
-                  type="number"
-                  disabled={!shippingSettings.shippingEnabled}
-                  value={shippingSettings.shippingCharge}
-                  onChange={(e) => setShippingSettings({
-                    ...shippingSettings,
-                    shippingCharge: Math.max(0, parseInt(e.target.value) || 0)
-                  })}
-                  className="w-full input-field p-3 text-sm border rounded-lg focus:ring-gold-500 disabled:opacity-50 disabled:bg-luxury-50"
-                  min="0"
-                />
-                <p className="text-[11px] text-luxury-400 mt-1">Flat charge added to orders below threshold.</p>
               </div>
 
-              {/* Field 2: Free Shipping Threshold */}
-              <div>
-                <label className="block text-xs font-bold text-luxury-700 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5 text-luxury-400" />
-                  Free Shipping Threshold (₹)
-                </label>
-                <input
-                  type="number"
-                  disabled={!shippingSettings.shippingEnabled || !shippingSettings.freeShippingEnabled}
-                  value={shippingSettings.freeShippingThreshold}
-                  onChange={(e) => setShippingSettings({
-                    ...shippingSettings,
-                    freeShippingThreshold: Math.max(0, parseInt(e.target.value) || 0)
-                  })}
-                  className="w-full input-field p-3 text-sm border rounded-lg focus:ring-gold-500 disabled:opacity-50 disabled:bg-luxury-50"
-                  min="0"
-                />
-                <p className="text-[11px] text-luxury-400 mt-1">Orders at or above this value get free shipping.</p>
-              </div>
+              {shippingSettings.methods.standard.enabled && shippingSettings.shippingEnabled ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Option Display Name</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.standard.name}
+                      onChange={(e) => handleMethodChange('standard', 'name', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. Standard Shipping"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Carrier / Short Description</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.standard.description}
+                      onChange={(e) => handleMethodChange('standard', 'description', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. Surface Courier"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Flat Price (₹)</label>
+                    <input
+                      type="number"
+                      value={shippingSettings.methods.standard.price}
+                      onChange={(e) => handleMethodChange('standard', 'price', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Estimated Delivery Time (ETA)</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.standard.deliveryTime}
+                      onChange={(e) => handleMethodChange('standard', 'deliveryTime', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. 5-7 Days"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-red-500 italic">Standard shipping is disabled and won't show up in storefront checkout.</p>
+              )}
             </div>
+
+            {/* Premium Shipping Config Card */}
+            <div className={`bg-white rounded-2xl p-6 border shadow-md space-y-4 transition-all ${
+              shippingSettings.methods.premium.enabled ? 'border-luxury-100' : 'border-red-100 bg-red-50/5'
+            }`}>
+              <div className="flex items-center justify-between border-b border-luxury-100 pb-3">
+                <h3 className="text-base font-bold text-luxury-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"></span>
+                  Premium Shipping Option Settings
+                </h3>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={shippingSettings.methods.premium.enabled}
+                    disabled={!shippingSettings.shippingEnabled}
+                    onChange={(e) => handleMethodChange('premium', 'enabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-luxury-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-luxury-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gold-500"></div>
+                </label>
+              </div>
+
+              {shippingSettings.methods.premium.enabled && shippingSettings.shippingEnabled ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Option Display Name</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.premium.name}
+                      onChange={(e) => handleMethodChange('premium', 'name', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. Premium Express Delivery"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Carrier / Short Description</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.premium.description}
+                      onChange={(e) => handleMethodChange('premium', 'description', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. Blue Dart Air"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Flat Price (₹)</label>
+                    <input
+                      type="number"
+                      value={shippingSettings.methods.premium.price}
+                      onChange={(e) => handleMethodChange('premium', 'price', Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-luxury-600 uppercase mb-1.5">Estimated Delivery Time (ETA)</label>
+                    <input
+                      type="text"
+                      value={shippingSettings.methods.premium.deliveryTime}
+                      onChange={(e) => handleMethodChange('premium', 'deliveryTime', e.target.value)}
+                      className="w-full input-field p-2.5 text-sm border rounded-lg"
+                      placeholder="e.g. 2-4 Days"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-red-500 italic">Premium shipping is disabled and won't show up in storefront checkout.</p>
+              )}
+            </div>
+
           </div>
 
           {/* Action Button */}
@@ -306,7 +498,7 @@ export default function AdminShippingFee() {
               className="btn-primary py-3 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Shipping Rules
+              Save Shipping Settings
             </button>
           </div>
         </div>
@@ -320,45 +512,64 @@ export default function AdminShippingFee() {
               <div>
                 <span className="text-luxury-400 block mb-0.5">Status:</span>
                 <span className="font-bold">
-                  {shippingSettings.shippingEnabled ? 'Active Shipping Rules' : 'Free Shipping for All (Disabled)'}
+                  {shippingSettings.shippingEnabled ? 'Active Custom Rules' : 'Free Shipping for All (Disabled)'}
                 </span>
               </div>
 
               {shippingSettings.shippingEnabled && (
-                <>
-                  <div>
-                    <span className="text-luxury-400 block mb-0.5">Rules:</span>
-                    <p className="leading-relaxed">
-                      If cart value is under <span className="text-white font-bold">₹{shippingSettings.freeShippingThreshold}</span>, standard fee of <span className="text-white font-bold">₹{shippingSettings.shippingCharge}</span> applies.
-                    </p>
-                    {shippingSettings.freeShippingEnabled && (
-                      <p className="leading-relaxed mt-1 text-gold-500 font-medium">
-                        Free shipping is unlocked at ₹{shippingSettings.freeShippingThreshold}.
+                <div className="space-y-3">
+                  {shippingSettings.methods.standard.enabled && (
+                    <div>
+                      <span className="text-luxury-400 block mb-0.5">Standard:</span>
+                      <p className="leading-relaxed text-luxury-200">
+                        {shippingSettings.methods.standard.name} ({shippingSettings.methods.standard.description}):{' '}
+                        <span className="text-white font-bold">₹{shippingSettings.methods.standard.price}</span>.
                       </p>
-                    )}
-                  </div>
-                </>
+                      {shippingSettings.freeShippingEnabled && (
+                        <p className="leading-relaxed mt-0.5 text-gold-400">
+                          Free at or above ₹{shippingSettings.freeShippingThreshold}.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {shippingSettings.methods.premium.enabled && (
+                    <div>
+                      <span className="text-luxury-400 block mb-0.5">Premium:</span>
+                      <p className="leading-relaxed text-luxury-200">
+                        {shippingSettings.methods.premium.name} ({shippingSettings.methods.premium.description}):{' '}
+                        <span className="text-white font-bold">₹{shippingSettings.methods.premium.price}</span>.
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
 
               <div className="pt-4 border-t border-luxury-800">
                 <span className="text-luxury-400 block mb-2 font-bold uppercase tracking-widest text-[10px]">Active Cases Preview:</span>
-                <ul className="space-y-2 leading-relaxed">
+                <ul className="space-y-2 leading-relaxed text-luxury-300">
                   <li className="flex justify-between border-b border-luxury-800/40 pb-1">
-                    <span>Cart ₹250</span>
-                    <span className="font-bold">
-                      {shippingSettings.shippingEnabled ? `+ ₹${shippingSettings.shippingCharge}` : 'Free'}
+                    <span>Cart ₹250 (Std)</span>
+                    <span className="font-bold text-white">
+                      {!shippingSettings.shippingEnabled ? 'Free' : (!shippingSettings.methods.standard.enabled ? 'N/A' : `₹${shippingSettings.methods.standard.price}`)}
                     </span>
                   </li>
                   <li className="flex justify-between border-b border-luxury-800/40 pb-1">
-                    <span>Cart ₹{shippingSettings.freeShippingThreshold}</span>
-                    <span className="font-bold">
-                      {shippingSettings.shippingEnabled && !shippingSettings.freeShippingEnabled ? `+ ₹${shippingSettings.shippingCharge}` : 'Free'}
+                    <span>Cart ₹250 (Prem)</span>
+                    <span className="font-bold text-white">
+                      {!shippingSettings.shippingEnabled ? 'Free' : (!shippingSettings.methods.premium.enabled ? 'N/A' : `₹${shippingSettings.methods.premium.price}`)}
+                    </span>
+                  </li>
+                  <li className="flex justify-between border-b border-luxury-800/40 pb-1">
+                    <span>Cart ₹{shippingSettings.freeShippingThreshold} (Std)</span>
+                    <span className="font-bold text-white">
+                      {!shippingSettings.shippingEnabled ? 'Free' : (!shippingSettings.methods.standard.enabled ? 'N/A' : (shippingSettings.freeShippingEnabled ? 'Free' : `₹${shippingSettings.methods.standard.price}`))}
                     </span>
                   </li>
                   <li className="flex justify-between">
-                    <span>Cart ₹{shippingSettings.freeShippingThreshold + 500}</span>
-                    <span className="font-bold">
-                      {shippingSettings.shippingEnabled && !shippingSettings.freeShippingEnabled ? `+ ₹${shippingSettings.shippingCharge}` : 'Free'}
+                    <span>Cart ₹{shippingSettings.freeShippingThreshold} (Prem)</span>
+                    <span className="font-bold text-white">
+                      {!shippingSettings.shippingEnabled ? 'Free' : (!shippingSettings.methods.premium.enabled ? 'N/A' : `₹${shippingSettings.methods.premium.price}`)}
                     </span>
                   </li>
                 </ul>
@@ -371,7 +582,7 @@ export default function AdminShippingFee() {
       {/* History Log Section */}
       <div className="bg-white rounded-2xl p-6 border border-luxury-100 shadow-md">
         <div className="flex items-center gap-2 mb-4">
-          <History className="w-5 h-5 text-gold-600" />
+          <History className="w-5 h-5 text-gold-650" />
           <h3 className="text-base font-bold text-luxury-900">Shipping Change History</h3>
         </div>
         <p className="text-xs text-luxury-500 mb-6">

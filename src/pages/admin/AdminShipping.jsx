@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToAllOrders, updateTrackingInfo, updateOrderStatus, exportOrdersCSV } from '../../services/orderTracking';
-import { normalizeStatus, formatINR } from '../../services/orderStatus';
+import { normalizeStatus, formatINR, getOrderDisplayId } from '../../services/orderStatus';
 import { StatusBadge } from '../../components/UI/OrderTimeline';
 import { toast } from 'react-toastify';
 import shiprocketService from '../../services/shiprocket';
@@ -416,7 +416,7 @@ export default function AdminShipping() {
                               onClick={() => navigate(`/admin/orders/${order.id}`)}
                               className="text-sm font-bold text-luxury-900 font-mono hover:text-gold-600 transition-colors"
                             >
-                              #{order.id?.slice(-8).toUpperCase()}
+                              #{getOrderDisplayId(order)}
                             </button>
                             <StatusBadge status={order.status} />
                             <span className="text-[10px] bg-luxury-100 text-luxury-700 px-2 py-0.5 rounded-full font-bold uppercase border border-luxury-250">
@@ -574,7 +574,7 @@ export default function AdminShipping() {
                               onClick={() => navigate(`/admin/orders/${order.id}`)}
                               className="text-sm font-bold text-luxury-900 font-mono hover:text-gold-600 transition-colors"
                             >
-                              #{order.id?.slice(-8).toUpperCase()}
+                              #{getOrderDisplayId(order)}
                             </button>
                             <StatusBadge status={order.status} />
                             
@@ -998,7 +998,7 @@ export default function AdminShipping() {
             <div className="flex justify-between items-center border-b border-luxury-100 pb-4">
               <div>
                 <h3 className="font-serif text-lg font-bold text-luxury-900">Shiprocket Courier Selection</h3>
-                <p className="text-xs text-luxury-500 mt-1">Book courier partner for order #{bookingOrder.id?.slice(-8).toUpperCase()}</p>
+                <p className="text-xs text-luxury-500 mt-1">Book courier partner for order #{getOrderDisplayId(bookingOrder)}</p>
               </div>
               <button
                 onClick={() => setBookingOrder(null)}

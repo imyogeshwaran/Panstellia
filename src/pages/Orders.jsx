@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { getOptimizedImageUrl } from '../utils/imageUtils';
 import SEOHelmet from '../utils/seoHelmet';
 import { StatusBadge, MiniProgressBar } from '../components/UI/OrderTimeline';
+import { getOrderDisplayId } from '../services/orderStatus';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -368,7 +369,7 @@ const OrdersPage = () => {
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div>
                           <p className="text-xs text-luxury-500 font-semibold uppercase tracking-wide">
-                            Order #{order.id.slice(0, 8).toUpperCase()}
+                            Order #{getOrderDisplayId(order)}
                           </p>
                           <p className="text-xs text-luxury-400 mt-0.5">
                             {formatDate(order.createdAt)}

@@ -44,12 +44,34 @@ const CheckoutPage = () => {
   const [courierName, setCourierName] = useState('');
   const [isDeliverable, setIsDeliverable] = useState(true);
 
+  const [shippingSettings, setShippingSettings] = useState(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'ShippingSettings', 'config'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setShippingSettings(data);
+        
+        // Auto-select standard or premium based on what's enabled
+        const isStandardEnabled = data.methods?.standard?.enabled !== false;
+        const isPremiumEnabled = !!data.methods?.premium?.enabled;
+        if (!isStandardEnabled && isPremiumEnabled) {
+          setSelectedShippingMethod('premium');
+        } else {
+          setSelectedShippingMethod('standard');
+        }
+      }
+    }, (err) => console.error("Error reading shipping settings:", err));
+    return () => unsub();
+  }, []);
+
   // Centralized calculations
   const checkoutTotals = calculateCheckout({
     subtotal,
     shippingMethod: selectedShippingMethod,
     paymentMethod: selectedPaymentMethod,
-    discount: couponDiscount
+    discount: couponDiscount,
+    shippingSettings
   });
 
   const { shipping: dynamicShipping, codCharge, tax, total: finalTotal } = checkoutTotals;
@@ -137,7 +159,7 @@ const CheckoutPage = () => {
     }, (err) => console.error("Error reading payments settings:", err));
     return () => unsub();
   }, []);
-  
+
   const [formData, setFormData] = useState({
     name: user?.displayName || '',
     email: user?.email || '',
@@ -283,9 +305,12 @@ const CheckoutPage = () => {
 
         const res = await checkServiceability(pin, weight, isCod, token);
 
+        const standardETA = shippingSettings?.methods?.standard?.deliveryTime || '5-7 Days';
+        const premiumETA = shippingSettings?.methods?.premium?.deliveryTime || '2-4 Days';
+
         if (res.deliverable) {
           setIsDeliverable(true);
-          setEstDeliveryDate(res.est_days || (selectedShippingMethod === 'premium' ? '2-4 Days' : '5-7 Days'));
+          setEstDeliveryDate(res.est_days || (selectedShippingMethod === 'premium' ? premiumETA : standardETA));
           setCourierName(res.courier || '');
         } else {
           setPincodeError('Pincode is not serviceable by our delivery partners.');
@@ -294,8 +319,10 @@ const CheckoutPage = () => {
       } catch (err) {
         console.error('Serviceability check failed:', err.message);
         // Fallback gracefully in case of API failure, but warn user
+        const standardETA = shippingSettings?.methods?.standard?.deliveryTime || '5-7 Days';
+        const premiumETA = shippingSettings?.methods?.premium?.deliveryTime || '2-4 Days';
         setIsDeliverable(true);
-        setEstDeliveryDate(selectedShippingMethod === 'premium' ? '2-4 Days' : '5-7 Days');
+        setEstDeliveryDate(selectedShippingMethod === 'premium' ? premiumETA : standardETA);
       } finally {
         setShippingRateLoading(false);
       }
@@ -304,7 +331,7 @@ const CheckoutPage = () => {
     if (user && formData.pincode) {
       checkAddressServiceability();
     }
-  }, [formData.pincode, selectedPaymentMethod, user, cartItems, selectedShippingMethod]);
+  }, [formData.pincode, selectedPaymentMethod, user, cartItems, selectedShippingMethod, shippingSettings]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -382,7 +409,7 @@ const CheckoutPage = () => {
           const paymentMethod = 'cod';
           const shortCode = Math.random().toString(36).slice(2, 8).toUpperCase();
           const orderId = `COD-${shortCode}`;
-          const orderDocRef = doc(collection(db, 'orders'));
+          const orderDocRef = doc(db, 'orders', orderId);
 
           // Check user orders count with this coupon (One-time check)
           let userOrdersCount = 0;
@@ -439,6 +466,9 @@ const CheckoutPage = () => {
             const productDocs = readResults.filter(r => r.type === 'product');
             const couponResult = readResults.find(r => r.type === 'coupon');
             const couponSnap = couponResult ? couponResult.snap : null;
+            const shippingSettingsResult = readResults.find(r => r.type === 'shippingSettings');
+            const shippingSettingsSnap = shippingSettingsResult ? shippingSettingsResult.snap : null;
+            const shippingSettingsData = shippingSettingsSnap && shippingSettingsSnap.exists() ? shippingSettingsSnap.data() : null;
 
             // 2. Validate availability and calculate subtotal securely
             let calculatedSubtotal = 0;
@@ -552,7 +582,8 @@ const CheckoutPage = () => {
               subtotal: calculatedSubtotal,
               shippingMethod: selectedShippingMethod,
               paymentMethod: 'cod',
-              discount: calculatedDiscount
+              discount: calculatedDiscount,
+              shippingSettings: shippingSettingsData
             });
 
             const calculatedShipping = totalsObj.shipping;
@@ -1237,40 +1268,56 @@ const CheckoutPage = () => {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Standard Shipping Card */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedShippingMethod('standard')}
-                    className={`rounded-xl p-4 flex items-start border-2 transition-all text-left w-full ${
-                      selectedShippingMethod === 'standard'
-                        ? 'border-gold-500 bg-gold-50/10'
-                        : 'border-luxury-100 bg-white hover:border-luxury-300'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-luxury-900">Standard Shipping</p>
-                      <p className="text-xs text-luxury-500 mt-0.5">Surface Delivery (Up to 7 Days)</p>
-                      <p className="text-xs font-extrabold text-gold-650 mt-2">
-                        {subtotal >= 999 ? 'FREE' : '₹49'}
-                      </p>
-                    </div>
-                  </button>
+                  {(!shippingSettings || shippingSettings?.methods?.standard?.enabled !== false) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShippingMethod('standard')}
+                      className={`rounded-xl p-4 flex items-start border-2 transition-all text-left w-full ${
+                        selectedShippingMethod === 'standard'
+                          ? 'border-gold-500 bg-gold-50/10'
+                          : 'border-luxury-100 bg-white hover:border-luxury-300'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-luxury-900">
+                          {shippingSettings?.methods?.standard?.name || 'Standard Shipping'}
+                        </p>
+                        <p className="text-xs text-luxury-500 mt-0.5">
+                          {shippingSettings?.methods?.standard?.description || 'Surface Delivery'} ({shippingSettings?.methods?.standard?.deliveryTime || 'Up to 7 Days'})
+                        </p>
+                        <p className="text-xs font-extrabold text-gold-650 mt-2">
+                          {(!shippingSettings || shippingSettings?.freeShippingEnabled) && subtotal >= Number(shippingSettings?.freeShippingThreshold ?? 999)
+                            ? 'FREE'
+                            : `₹${shippingSettings?.methods?.standard?.price !== undefined ? shippingSettings.methods.standard.price : (shippingSettings?.shippingCharge ?? 49)}`}
+                        </p>
+                      </div>
+                    </button>
+                  )}
 
                   {/* Premium Shipping Card */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedShippingMethod('premium')}
-                    className={`rounded-xl p-4 flex items-start border-2 transition-all text-left w-full ${
-                      selectedShippingMethod === 'premium'
-                        ? 'border-gold-500 bg-gold-50/10'
-                        : 'border-luxury-100 bg-white hover:border-luxury-300'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-luxury-900">Premium Shipping</p>
-                      <p className="text-xs text-luxury-500 mt-0.5">Blue Dart Air (2–4 Days)</p>
-                      <p className="text-xs font-extrabold text-gold-650 mt-2">₹129</p>
-                    </div>
-                  </button>
+                  {(!shippingSettings || shippingSettings?.methods?.premium?.enabled !== false) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShippingMethod('premium')}
+                      className={`rounded-xl p-4 flex items-start border-2 transition-all text-left w-full ${
+                        selectedShippingMethod === 'premium'
+                          ? 'border-gold-500 bg-gold-50/10'
+                          : 'border-luxury-100 bg-white hover:border-luxury-300'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-luxury-900">
+                          {shippingSettings?.methods?.premium?.name || 'Premium Shipping'}
+                        </p>
+                        <p className="text-xs text-luxury-500 mt-0.5">
+                          {shippingSettings?.methods?.premium?.description || 'Blue Dart Air'} ({shippingSettings?.methods?.premium?.deliveryTime || '2–4 Days'})
+                        </p>
+                        <p className="text-xs font-extrabold text-gold-650 mt-2">
+                          ₹{shippingSettings?.methods?.premium?.price !== undefined ? shippingSettings.methods.premium.price : 129}
+                        </p>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
 

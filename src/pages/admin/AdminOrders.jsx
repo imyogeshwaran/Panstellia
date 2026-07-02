@@ -27,7 +27,7 @@ import { logActivity, LOG_ACTIONS, LOG_MODULES, LOG_STATUS, buildAdminInfo } fro
 import { subscribeToAllOrders, bulkUpdateStatus, exportOrdersCSV } from '../../services/orderTracking';
 import {
   STATUS_PIPELINE, PRIORITY_CONFIG, normalizeStatus,
-  detectDelay, isHighValueOrder, formatINR,
+  detectDelay, isHighValueOrder, formatINR, getOrderDisplayId,
 } from '../../services/orderStatus';
 import { StatusBadge } from '../../components/UI/OrderTimeline';
 import { useAdminSearch } from '../../hooks/useAdminSearch';
@@ -175,7 +175,7 @@ export default function AdminOrders() {
     if (!registerSource) return;
     registerSource?.('orders', orders.map(o => ({
       id: o.id,
-      label: `Order #${o.id?.slice(-8).toUpperCase()} — ${o.customerName || o.name || 'Customer'}`,
+      label: `Order #${getOrderDisplayId(o)} — ${o.customerName || o.name || 'Customer'}`,
       sub: `${o.status} · ${formatINR(o.total)}`,
       href: `/admin/orders/${o.id}`,
     })));
@@ -315,7 +315,7 @@ export default function AdminOrders() {
       logActivity({
         module: LOG_MODULES.ORDERS, action: LOG_ACTIONS.ORDER_DELETED,
         targetId: orderId, targetType: 'order',
-        description: `Order #${orderId.slice(-8).toUpperCase()} deleted`,
+        description: `Order #${getOrderDisplayId(orderId)} deleted`,
         status: LOG_STATUS.SUCCESS, adminInfo: buildAdminInfo(user),
       });
     } catch (e) {
@@ -524,7 +524,7 @@ export default function AdminOrders() {
                             onClick={() => navigate(`/admin/orders/${order.id}`)}
                             className="text-sm font-bold text-luxury-900 font-mono hover:text-gold-600 transition-colors"
                           >
-                            #{order.id?.slice(-8).toUpperCase()}
+                            #{getOrderDisplayId(order)}
                           </button>
                           {highVal && (
                             <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">

@@ -14,6 +14,7 @@ import SEOHelmet from '../utils/seoHelmet';
 import { getCategoryLabel } from '../utils/categoryLabels';
 import { toast } from 'react-toastify';
 import { StatusBadge } from '../components/UI/OrderTimeline';
+import { getOrderDisplayId } from '../services/orderStatus';
 
 export default function ProfilePage() {
   const { 
@@ -450,7 +451,7 @@ export default function ProfilePage() {
                           <div className="bg-luxury-50/50 px-4 py-3 flex items-center justify-between border-b border-luxury-100 flex-wrap gap-2 text-xs text-luxury-500 font-semibold">
                             <div>
                               <span>Order </span>
-                              <span className="font-mono text-luxury-800 font-bold uppercase">#{order.id.slice(0, 8)}</span>
+                              <span className="font-mono text-luxury-800 font-bold uppercase">#{getOrderDisplayId(order)}</span>
                             </div>
                             <div className="flex items-center gap-4">
                               <span>
