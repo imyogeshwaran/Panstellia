@@ -235,11 +235,11 @@ export default async function handler(req, res) {
       };
 
       // Create order document in "orders" collection if it doesn't exist
-      let orderDocId = pData.orderDocId;
-      if (!orderDocId) {
-        const orderRef = db.collection("orders").doc();
-        orderDocId = orderRef.id;
+      let orderDocId = pData.orderDocId || pData.orderId;
+      const orderRef = db.collection("orders").doc(orderDocId);
+      const orderSnap = await transaction.get(orderRef);
 
+      if (!orderSnap.exists) {
         const orderData = {
           userId: pData.userId,
           orderId: pData.orderId,
@@ -283,7 +283,7 @@ export default async function handler(req, res) {
       } else {
         // Fallback for backward compatibility (if order document already exists)
         transaction.update(paymentDocRef, paidUpdate);
-        transaction.update(db.collection("orders").doc(orderDocId), paidUpdate);
+        transaction.update(orderRef, paidUpdate);
       }
 
       // Update coupon uses if applied

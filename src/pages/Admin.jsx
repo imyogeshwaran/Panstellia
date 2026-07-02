@@ -28,6 +28,7 @@ function safeToDate(value) {
 }
 
 import { getOptimizedImageUrl } from '../utils/imageUtils';
+import { getOrderDisplayId } from '../services/orderStatus';
 import { getCategoryLabel } from '../utils/categoryLabels';
 import RevenueAdmin from './RevenueAdmin';
 import ReportsAdmin from './ReportsAdmin';
@@ -1217,7 +1218,7 @@ const AdminPage = () => {
                       if (!canCancel) return;
                       if (
                         !window.confirm(
-                          `Cancel order ${order.id?.slice(0, 8).toUpperCase()}?`
+                          `Cancel order ${getOrderDisplayId(order)}?`
                         )
                       ) {
                         return;
@@ -1237,7 +1238,7 @@ const AdminPage = () => {
                     const handleDeleteOrder = async () => {
                       if (
                         !window.confirm(
-                          `Delete order ${order.id?.slice(0, 8).toUpperCase()}? This cannot be undone.`
+                          `Delete order ${getOrderDisplayId(order)}? This cannot be undone.`
                         )
                       ) {
                         return;
@@ -1264,7 +1265,7 @@ const AdminPage = () => {
                         <div className="flex justify-between items-start gap-4">
                           <div>
                             <p className="font-medium text-luxury-900">
-                              Order #{order.id?.slice(0, 8).toUpperCase()}
+                              Order #{getOrderDisplayId(order)}
                             </p>
                             <p className="text-sm text-luxury-500">
                               {order.items?.length} items - ₹{order.total?.toLocaleString()}

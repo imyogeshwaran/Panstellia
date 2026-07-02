@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { subscribeToAllOrders, updateOrderStatus, updateTrackingInfo } from '../../services/orderTracking';
 import {
   STATUS_PIPELINE, normalizeStatus, detectDelay,
-  isHighValueOrder, formatINR, formatINRCompact
+  isHighValueOrder, formatINR, formatINRCompact, getOrderDisplayId
 } from '../../services/orderStatus';
 import { StatusBadge } from '../../components/UI/OrderTimeline';
 import {
@@ -269,7 +269,7 @@ export default function AdminFulfillment() {
       // 2. Transition status to Shipped
       await updateOrderStatus(shippingModalOrder.id, 'shipped', user, `Courier: ${courier} | Tracking: ${shippingTracking.trim()}`);
 
-      toast.success(`Shipment records generated and order #${shippingModalOrder.id.slice(-8).toUpperCase()} marked as shipped.`);
+      toast.success(`Shipment records generated and order #${getOrderDisplayId(shippingModalOrder)} marked as shipped.`);
       setShippingModalOrder(null);
     } catch (err) {
       toast.error(err.message || 'Failed to update shipping info');
@@ -453,7 +453,7 @@ export default function AdminFulfillment() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-bold text-luxury-900 font-mono">
-                                #{order.id?.slice(-8).toUpperCase()}
+                                #{getOrderDisplayId(order)}
                               </span>
                               <StatusBadge status={order.status} />
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -523,7 +523,7 @@ export default function AdminFulfillment() {
               <div className="text-xs text-luxury-600 bg-luxury-50 p-3 rounded-lg flex justify-between">
                 <span><strong>Order Reference:</strong></span>
                 <span className="font-mono font-bold text-luxury-800">
-                  #{shippingModalOrder.id?.slice(-8).toUpperCase()}
+                  #{getOrderDisplayId(shippingModalOrder)}
                 </span>
               </div>
 

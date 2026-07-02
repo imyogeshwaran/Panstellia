@@ -24,6 +24,7 @@ import { subscribeToOrder } from '../services/orderTracking';
 import {
   STATUS_PIPELINE, normalizeStatus, getStatusIndex,
   estimateDelivery, isHighValueOrder, safeToDate,
+  getOrderDisplayId,
 } from '../services/orderStatus';
 import SEOHelmet from '../utils/seoHelmet';
 
@@ -125,7 +126,7 @@ export default function TrackOrder() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-luxury-50 via-white to-luxury-100 py-8">
       <SEOHelmet
-        title={`Track Order #${id?.slice(0, 8).toUpperCase() || ''} | Panstellia`}
+        title={`Track Order #${getOrderDisplayId(id) || ''} | Panstellia`}
         description="Track your Panstellia order in real-time. See live shipping status and estimated delivery."
         keywords="order tracking, track order, shipping status"
         canonical={`https://panstellia.com/order/${id}/track`}
@@ -181,7 +182,7 @@ export default function TrackOrder() {
                 </div>
                 <div>
                   <h1 className="font-serif text-xl font-bold text-luxury-900">Order Cancelled</h1>
-                  <p className="text-sm text-luxury-500 mt-0.5">#{id?.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-sm text-luxury-500 mt-0.5">#{getOrderDisplayId(id)}</p>
                 </div>
               </div>
               <div className="px-6 pb-6">
@@ -216,7 +217,7 @@ export default function TrackOrder() {
                       )}
                     </div>
                     <h1 className="font-serif text-2xl font-bold text-luxury-900">
-                      #{id?.slice(0, 8).toUpperCase()}
+                      #{getOrderDisplayId(id)}
                     </h1>
                     <p className="text-sm text-luxury-500 mt-0.5">
                       Placed on {formatDate(order.createdAt)}

@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToFulfillmentLogs } from '../../services/orderTracking';
+import { getOrderDisplayId } from '../../services/orderStatus';
 import { Activity, Clock, User, Clipboard, AlertTriangle } from 'lucide-react';
 
 export default function FulfillmentLogsView() {
@@ -80,7 +81,7 @@ export default function FulfillmentLogsView() {
                       </span>
                       {log.orderId && (
                         <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 bg-luxury-50 border border-luxury-200 text-luxury-500 rounded">
-                          #{log.orderId.slice(-8).toUpperCase()}
+                          #{getOrderDisplayId(log.orderId)}
                         </span>
                       )}
                     </div>

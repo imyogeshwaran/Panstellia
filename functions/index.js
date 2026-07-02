@@ -403,7 +403,7 @@ async function createOrderHandler(req, res) {
         transaction.update(update.ref, update.data);
       }
 
-      const orderRef = db.collection("orders").doc();
+      const orderRef = db.collection("orders").doc(orderNumber);
       const paymentRef = db.collection("payments").doc();
 
       const commonOrderData = {
